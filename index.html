@@ -1,344 +1,599 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangout Rooms</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-<body style="margin:0; overflow:hidden;">
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d0d14;
+    color: #eee;
+    overflow: hidden;
+    height: 100vh;
+    touch-action: none;
+  }
 
-    <div id="sidebar"
-style="
-position:absolute;
-left:10px;
-top:10px;
-z-index:1000;
-background:rgba(20,20,30,0.9);
-color:white;
-padding:10px;
-border-radius:10px;
-box-shadow:0 0 20px rgba(0,0,0,0.5);
-border:1px solid #555;
-">
+  /* ── ROOM PICKER OVERLAY ── */
+  #room-picker {
+    position: fixed; inset: 0;
+    background: rgba(10, 10, 20, 0.97);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; z-index: 9999;
+  }
+  #room-picker h1 { font-size: 2rem; letter-spacing: 2px; color: #c8b4f8; }
+  #room-picker p  { color: #888; font-size: 0.9rem; }
+  .room-input-row {
+    display: flex; gap: 8px;
+  }
+  .room-input-row input {
+    padding: 10px 16px; border-radius: 8px;
+    border: 1px solid #444; background: #1a1a2e;
+    color: #eee; font-size: 1rem; width: 220px;
+    outline: none;
+  }
+  .room-input-row input:focus { border-color: #8b63e8; }
+  .btn {
+    padding: 10px 20px; border-radius: 8px;
+    border: none; cursor: pointer; font-size: 0.95rem;
+    background: #6c3fcf; color: #fff;
+    transition: background 0.2s;
+  }
+  .btn:hover { background: #8b63e8; }
+  .btn.ghost {
+    background: transparent; border: 1px solid #555; color: #aaa;
+  }
+  .btn.ghost:hover { border-color: #8b63e8; color: #c8b4f8; }
 
-<button onclick="addSticker('black-cat.png')">🐈 Cat</button>
-<br><br>
+  #username-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  #username-row label { color: #888; font-size: 0.85rem; }
+  #username-row input {
+    padding: 8px 12px; border-radius: 8px;
+    border: 1px solid #444; background: #1a1a2e;
+    color: #eee; font-size: 0.9rem; width: 160px; outline: none;
+  }
 
-<button onclick="addSticker('candle.png')">🕯️ Candle</button>
-<br><br>
+  /* ── MAIN APP ── */
+  #app { display: none; position: relative; width: 100vw; height: 100vh; }
 
-<button onclick="addSticker('books.png')">📚 Books</button>
-<br><br>
+  #room-bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
 
-<button onclick="addSticker('crystal-ball.png')">🔮 Crystal Ball</button>
-<br><br>
+  #sticker-layer {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
 
-<button onclick="addSticker('plant.png')">🪴 Plant</button>
-<br></br>
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: absolute; left: 10px; top: 10px; z-index: 100;
+    background: rgba(15, 15, 25, 0.92);
+    border: 1px solid #3a3a5c;
+    border-radius: 12px; padding: 12px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: calc(100vh - 20px); overflow-y: auto;
+    backdrop-filter: blur(8px);
+    width: 130px;
+  }
+  .sidebar-label {
+    font-size: 0.65rem; color: #666; text-transform: uppercase;
+    letter-spacing: 1px; padding: 4px 0 2px;
+  }
+  .sticker-btn {
+    padding: 7px 10px; border-radius: 8px;
+    border: 1px solid #2e2e4a; background: #1a1a2e;
+    color: #ccc; font-size: 0.8rem;
+    cursor: pointer; text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .sticker-btn:hover { background: #2a2a4a; border-color: #6c3fcf; color: #fff; }
 
-<button onclick="addSticker('books2.png')">📚 Books 2</button>
-<br><br>
+  .room-badge {
+    font-size: 0.65rem; color: #8b63e8;
+    padding: 4px 8px; background: rgba(108,63,207,0.15);
+    border-radius: 6px; text-align: center; cursor: pointer;
+    border: 1px solid rgba(108,63,207,0.3);
+  }
+  .room-badge:hover { background: rgba(108,63,207,0.3); }
 
-<button onclick="addSticker('food.png')">🍖 Food</button>
-<br><br>
+  /* ── CHATBOX ── */
+  #chatbox {
+    position: absolute; right: 10px; bottom: 10px;
+    width: 260px; height: 320px;
+    background: rgba(15, 15, 25, 0.92);
+    border: 1px solid #3a3a5c; border-radius: 12px;
+    display: flex; flex-direction: column;
+    z-index: 100; backdrop-filter: blur(8px);
+    overflow: hidden;
+  }
+  #chat-header {
+    padding: 10px 14px; font-size: 0.75rem;
+    color: #8b63e8; border-bottom: 1px solid #2a2a4a;
+    display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  #online-count { color: #888; font-size: 0.7rem; }
+  #messages {
+    flex: 1; overflow-y: auto; padding: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 2px; }
+  .msg { font-size: 0.78rem; line-height: 1.4; }
+  .msg .author { color: #8b63e8; font-weight: 600; margin-right: 4px; }
+  .msg.system { color: #555; font-style: italic; font-size: 0.72rem; }
+  #chat-input-row {
+    display: flex; gap: 6px; padding: 8px;
+    border-top: 1px solid #2a2a4a;
+  }
+  #chatInput {
+    flex: 1; padding: 7px 10px; border-radius: 7px;
+    border: 1px solid #3a3a5c; background: #1a1a2e;
+    color: #eee; font-size: 0.8rem; outline: none;
+  }
+  #chatInput:focus { border-color: #6c3fcf; }
+  #sendBtn {
+    padding: 7px 12px; border-radius: 7px;
+    border: none; background: #6c3fcf; color: #fff;
+    cursor: pointer; font-size: 0.8rem;
+  }
+  #sendBtn:hover { background: #8b63e8; }
 
-<button onclick="addSticker('food2.png')">🍖 Food 2</button>
-<br><br>
+  /* ── STICKER context menu ── */
+  #ctx-menu {
+    position: fixed; display: none;
+    background: rgba(20,20,35,0.97); border: 1px solid #3a3a5c;
+    border-radius: 8px; padding: 6px 0; z-index: 500;
+    min-width: 120px; backdrop-filter: blur(8px);
+  }
+  #ctx-menu button {
+    width: 100%; text-align: left; padding: 7px 14px;
+    background: none; border: none; color: #ccc;
+    font-size: 0.8rem; cursor: pointer;
+  }
+  #ctx-menu button:hover { background: #2a2a4a; color: #fff; }
 
-<button onclick="addSticker('cat-food.png')">🐟 Cat Food</button>
-<br><br>
+  /* ── FILE UPLOAD ── */
+  #upload-label {
+    position: absolute; left: 10px; bottom: 10px; z-index: 100;
+    padding: 7px 12px; border-radius: 8px;
+    background: rgba(15,15,25,0.92); border: 1px solid #3a3a5c;
+    color: #888; font-size: 0.75rem; cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: color 0.2s;
+  }
+  #upload-label:hover { color: #c8b4f8; border-color: #6c3fcf; }
+  #upload-label input { display: none; }
+</style>
+</head>
+<body>
 
-<button onclick="addSticker('dog-food.png')">🦴 Dog Food</button>
-<br><br>
+<!-- ── ROOM PICKER ── -->
+<div id="room-picker">
+  <h1>☽ hangout</h1>
+  <p>Enter a room name to join or create a room</p>
 
-<button onclick="addSticker('dog-food2.png')">🦴 Dog Food 2</button>
-<br><br>
+  <div id="username-row">
+    <label>Your name</label>
+    <input id="usernameInput" placeholder="guest" maxlength="20">
+  </div>
 
-<button onclick="addSticker('plant2.png')">🌿 Plant 2</button>
+  <div class="room-input-row">
+    <input id="roomInput" placeholder="room name…" maxlength="30">
+    <button class="btn" onclick="joinRoom()">Join →</button>
+  </div>
 
+  <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:320px">
+    <button class="btn ghost" onclick="quickJoin('cozy-corner')">🌙 cozy corner</button>
+    <button class="btn ghost" onclick="quickJoin('study-hall')">📚 study hall</button>
+    <button class="btn ghost" onclick="quickJoin('chill-zone')">🕯️ chill zone</button>
+  </div>
 </div>
 
-<div id="chatbox"
-style="
-position:absolute;
-right:10px;
-bottom:10px;
-width:250px;
-height:300px;
-background:rgba(20,20,30,0.9);
-color:white;
-padding:10px;
-border-radius:10px;
-display:flex;
-flex-direction:column;
-z-index:1000;
-">
+<!-- ── MAIN APP ── -->
+<div id="app">
+  <img id="room-bg" src="room.jpg" alt="room background">
 
-<div id="messages"
-style="flex:1; overflow-y:auto; font-size:14px;">
+  <div id="sticker-layer"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave room</div>
+    <div class="sidebar-label">Add sticker</div>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/black-cat.png')">🐈 Cat</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/candle.png')">🕯️ Candle</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/books.png')">📚 Books</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/crystal-ball.png')">🔮 Crystal Ball</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/plant.png')">🪴 Plant</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/books2.png')">📚 Books 2</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/food.png')">🍖 Food</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/food2.png')">🍖 Food 2</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/cat-food.png')">🐟 Cat Food</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food.png')">🦴 Dog Food</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food2.png')">🦴 Dog Food 2</button>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/plant2.png')">🌿 Plant 2</button>
+    <div class="sidebar-label">Room background</div>
+    <label class="sticker-btn" style="cursor:pointer; text-align:center;">
+      🖼️ Change BG
+      <input type="file" id="bg-uploader" accept="image/*" style="display:none">
+    </label>
+    <button class="sticker-btn" onclick="resetBg()" style="text-align:center;">↺ Reset BG</button>
+  </div>
+
+  <!-- Chat -->
+  <div id="chatbox">
+    <div id="chat-header">
+      <span id="roomLabel">room</span>
+      <span id="online-count">0 online</span>
+    </div>
+    <div id="messages"></div>
+    <div id="chat-input-row">
+      <input id="chatInput" placeholder="say something…" maxlength="200">
+      <button id="sendBtn" onclick="sendChat()">→</button>
+    </div>
+  </div>
+
+  <!-- Custom image upload -->
+  <label id="upload-label">
+    📎 upload sticker
+    <input type="file" id="uploader" accept="image/*">
+  </label>
+
+  <!-- Context menu for stickers -->
+  <div id="ctx-menu">
+    <button onclick="deleteActiveSticker()">🗑 Delete sticker</button>
+    <button onclick="bringToFront()">↑ Bring to front</button>
+  </div>
 </div>
 
-<input id="chatInput"
-placeholder="say something..."
-style="margin-top:5px; padding:5px;">
-</div>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-<input
-    type="file"
-    id="uploader"
-    style="
-        position:absolute;
-        z-index:1000;
-        top:520px;
-        left:10px;
-    "
->
-
-<div id="room" style="position:relative;">
-    
-    <img
-        src="room.jpg"
-        style="
-            width:100vw;
-            height:100vh;
-            object-fit:cover;
-        "
-    >
->
-</div>
 <script>
-
-let roomItems = [];
-
-/* =========================
-   GLOBAL STATE
-========================= */
-
-let selectedSticker = null;
-let chatHistory = [];
-
-function saveRoom() {
-    localStorage.setItem("room", JSON.stringify(roomItems));
-}
-
-/* =========================
-   DRAG SYSTEM
-========================= */
-
-function makeDraggable(sticker) {
-
-    sticker.addEventListener("mousedown", () => {
-        selectedSticker = sticker;
-    });
-
-    sticker.addEventListener("wheel", (event) => {
-
-        event.preventDefault();
-
-        let currentWidth = parseInt(sticker.style.width) || 120;
-
-        if (event.deltaY < 0) {
-            currentWidth += 10;
-        } else {
-            currentWidth -= 10;
-        }
-
-        if (currentWidth < 20) currentWidth = 20;
-
-        sticker.style.width = currentWidth + "px";
-
-        let item = roomItems.find(i => i.id == sticker.dataset.id);
-        if (item) {
-            item.size = currentWidth;
-            saveRoom();
-        }
-    });
-}
-
-/* mouse release + move */
-document.addEventListener("mouseup", () => {
-    selectedSticker = null;
-});
-
-document.addEventListener("mousemove", (event) => {
-
-    if (selectedSticker) {
-
-        let x = event.pageX - 60;
-        let y = event.pageY - 60;
-
-        selectedSticker.style.left = x + "px";
-        selectedSticker.style.top = y + "px";
-
-        const id = selectedSticker.dataset.id;
-
-        const item = roomItems.find(i => i.id == id);
-
-        if (item) {
-            item.x = x;
-            item.y = y;
-            saveRoom();
-        }
-    }
-});
-
-/* =========================
-   STICKERS
-========================= */
-
-window.addSticker = function(imagePath, x = 300, y = 300, size = 120) {
-
-    const image = document.createElement("img");
-
-    // 🔑 unique ID for saving system
-    const id = Date.now() + Math.random();
-    image.dataset.id = id;
-
-    image.src = imagePath;
-    image.style.position = "absolute";
-    image.style.width = size + "px";
-    image.style.left = x + "px";
-    image.style.top = y + "px";
-    image.style.cursor = "grab";
-
-    makeDraggable(image);
-
-    document.getElementById("room").appendChild(image);
-
-    /* store it */
-    roomItems.push({
-        id,              // 🔑 IMPORTANT (replaces broken el linking)
-        src: imagePath,
-        x: x,
-        y: y,
-        size: size
-    });
-
-    saveRoom();
+// ─────────────────────────────────────────────
+// PASTE YOUR FIREBASE CONFIG HERE
+// ─────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC7G_6Rn6QSg7cwWzE_byfGO1TYPPDLXBw",
+  authDomain: "hangout-place-32686.firebaseapp.com",
+  databaseURL: "https://hangout-place-32686-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hangout-place-32686",
+  storageBucket: "hangout-place-32686.firebasestorage.app",
+  messagingSenderId: "1059833051609",
+  appId: "1:1059833051609:web:d505e573641deb025e41c8"
 };
 
-/* =========================
-   CHAT SYSTEM
-========================= */
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-function initChat() {
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let currentRoom  = null;
+let currentUser  = 'guest';
+let presenceRef  = null;
+let stickerRef   = null;
+let chatRef      = null;
+let activeId     = null;   // sticker being dragged
+let activePtr    = null;   // pointer id
+let offsetX = 0, offsetY = 0;
+let ctxTargetId  = null;   // sticker right-clicked
+const lastWrite  = new Map();
+const zCounter   = { val: 100 };
 
-    const chatInput = document.getElementById("chatInput");
-    const messages = document.getElementById("messages");
-
-    if (!chatInput || !messages) return;
-
-    chatInput.addEventListener("keydown", (e) => {
-
-        if (e.key === "Enter" && chatInput.value.trim() !== "") {
-
-            const text = "you: " + chatInput.value;
-
-            const msg = document.createElement("div");
-            msg.textContent = text;
-
-            messages.appendChild(msg);
-            messages.scrollTop = messages.scrollHeight;
-
-            chatHistory.push(text);
-            localStorage.setItem("chat", JSON.stringify(chatHistory));
-
-            chatInput.value = "";
-        }
-    });
-
-    /* load chat */
-    const saved = localStorage.getItem("chat");
-
-    if (saved) {
-        chatHistory = JSON.parse(saved);
-
-        messages.innerHTML = "";
-
-        chatHistory.forEach(text => {
-            const msg = document.createElement("div");
-            msg.textContent = text;
-            messages.appendChild(msg);
-        });
-
-        messages.scrollTop = messages.scrollHeight;
-    }
+// ─────────────────────────────────────────────
+// ROOM PICKER
+// ─────────────────────────────────────────────
+function quickJoin(name) {
+  document.getElementById('roomInput').value = name;
+  joinRoom();
 }
 
-/* =========================
-   INIT EVERYTHING
-========================= */
+function joinRoom() {
+  const name = document.getElementById('roomInput').value.trim().toLowerCase().replace(/\s+/g, '-');
+  const user = document.getElementById('usernameInput').value.trim() || ('guest' + Math.floor(Math.random() * 1000));
+  if (!name) return;
 
-document.addEventListener("DOMContentLoaded", () => {
+  currentRoom = name;
+  currentUser = user;
 
-    initChat();
+  document.getElementById('room-picker').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('roomBadge').textContent = '🌙 ' + name;
+  document.getElementById('roomLabel').textContent  = '💬 ' + name;
 
-    const uploader = document.getElementById("uploader");
+  setupPresence();
+  setupStickers();
+  setupChat();
+  setupBg();
+}
 
-    /* =========================
-       LOAD SAVED ROOM
-    ========================= */
+function leaveRoom() {
+  if (presenceRef) presenceRef.remove();
+  if (stickerRef)  db.ref('rooms/' + currentRoom + '/stickers').off();
+  if (chatRef)     db.ref('rooms/' + currentRoom + '/chat').off();
+  db.ref('rooms/' + currentRoom + '/presence').off();
+  db.ref('rooms/' + currentRoom + '/bg').off();
 
-    const savedRoom = localStorage.getItem("room");
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('room-picker').style.display = 'flex';
+  document.getElementById('sticker-layer').innerHTML = '';
+  document.getElementById('messages').innerHTML = '';
+  currentRoom = null;
+}
 
-    if (savedRoom) {
+// ─────────────────────────────────────────────
+// PRESENCE (online count)
+// ─────────────────────────────────────────────
+function setupPresence() {
+  presenceRef = db.ref('rooms/' + currentRoom + '/presence/' + currentUser + '_' + Date.now());
+  presenceRef.set({ user: currentUser, joined: Date.now() });
+  presenceRef.onDisconnect().remove();
 
-        roomItems = JSON.parse(savedRoom);
+  db.ref('rooms/' + currentRoom + '/presence').on('value', snap => {
+    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+    document.getElementById('online-count').textContent = count + ' online';
+  });
+}
 
-        roomItems.forEach(item => {
+// ─────────────────────────────────────────────
+// CHAT
+// ─────────────────────────────────────────────
+function setupChat() {
+  chatRef = db.ref('rooms/' + currentRoom + '/chat');
 
-            const image = document.createElement("img");
-
-            image.dataset.id = item.id;   // ✅ REQUIRED FOR SAVE/LOAD LINK
-
-            image.src = item.src;
-            image.style.position = "absolute";
-            image.style.width = item.size + "px";
-            image.style.left = item.x + "px";
-            image.style.top = item.y + "px";
-            image.style.cursor = "grab";
-
-            makeDraggable(image);
-
-            document.getElementById("room").appendChild(image);
-        });
-    }
-
-    /* =========================
-       UPLOAD NEW IMAGE (FIXED STEP 2)
-    ========================= */
-
-    uploader.addEventListener("change", (event) => {
-
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const image = document.createElement("img");
-
-        const id = Date.now() + Math.random();   // ✅ unique ID
-        image.dataset.id = id;
-
-        image.src = URL.createObjectURL(file);
-
-        image.style.position = "absolute";
-        image.style.width = "150px";
-        image.style.left = "300px";
-        image.style.top = "300px";
-        image.style.cursor = "grab";
-
-        makeDraggable(image);
-        document.getElementById("room").appendChild(image);
-
-        /* ✅ SAVE PROPERLY */
-        roomItems.push({
-            id,
-            src: image.src,
-            x: 300,
-            y: 300,
-            size: 150
-        });
-
-        saveRoom();
+  // Keep only last 60 messages
+  chatRef.limitToLast(60).on('value', snap => {
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = '';
+    if (!snap.exists()) return;
+    snap.forEach(child => {
+      const d = child.val();
+      const div = document.createElement('div');
+      if (d.system) {
+        div.className = 'msg system';
+        div.textContent = d.text;
+      } else {
+        div.className = 'msg';
+        div.innerHTML = `<span class="author">${escHtml(d.user)}:</span>${escHtml(d.text)}`;
+      }
+      msgs.appendChild(div);
     });
+    msgs.scrollTop = msgs.scrollHeight;
+  });
 
+  // Announce join
+  chatRef.push({ system: true, text: currentUser + ' joined the room', ts: Date.now() });
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  db.ref('rooms/' + currentRoom + '/chat').push({
+    user: currentUser, text, ts: Date.now()
+  });
+}
+
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChat();
 });
 
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─────────────────────────────────────────────
+// STICKERS
+// ─────────────────────────────────────────────
+function setupStickers() {
+  stickerRef = db.ref('rooms/' + currentRoom + '/stickers');
+  stickerRef.on('value', snap => {
+    const data  = snap.val() || {};
+    const alive = new Set(Object.keys(data));
+
+    // Remove deleted stickers
+    document.querySelectorAll('#sticker-layer img[data-id]').forEach(el => {
+      if (!alive.has(el.dataset.id)) el.remove();
+    });
+
+    // Update / create
+    Object.entries(data).forEach(([id, item]) => renderSticker(id, item));
+  });
+}
+
+function addSticker(src, x, y, size = 120) {
+  x = x ?? Math.round(100 + Math.random() * (window.innerWidth  - 300));
+  y = y ?? Math.round(100 + Math.random() * (window.innerHeight - 300));
+  const id = Date.now() + '_' + Math.random().toString(36).slice(2);
+  db.ref('rooms/' + currentRoom + '/stickers/' + id).set({ id, src, x, y, size, z: zCounter.val++ });
+}
+
+function renderSticker(id, data) {
+  let el = document.querySelector(`#sticker-layer img[data-id="${id}"]`);
+  if (!el) {
+    el = document.createElement('img');
+    el.dataset.id = id;
+    el.style.position = 'absolute';
+    el.style.cursor   = 'grab';
+    el.draggable = false;
+    attachDrag(el);
+    document.getElementById('sticker-layer').appendChild(el);
+  }
+  el.src = data.src;
+  el.style.width  = (data.size || 120) + 'px';
+  el.style.zIndex = data.z || 100;
+
+  if (id !== activeId) {
+    el.style.transition = 'left 0.05s linear, top 0.05s linear';
+    el.style.left = data.x + 'px';
+    el.style.top  = data.y + 'px';
+  }
+}
+
+// ─────────────────────────────────────────────
+// DRAG — single pointermove on document (not per-sticker)
+// ─────────────────────────────────────────────
+function attachDrag(el) {
+  el.style.touchAction = 'none';
+
+  el.addEventListener('pointerdown', e => {
+    if (e.button === 2) return; // let context menu handle right-click
+    e.preventDefault();
+    activeId  = el.dataset.id;
+    activePtr = e.pointerId;
+    el.setPointerCapture?.(e.pointerId);
+    el.style.cursor = 'grabbing';
+    el.style.transition = 'none';
+    offsetX = e.pageX - el.offsetLeft;
+    offsetY = e.pageY - el.offsetTop;
+
+    // Bring to front locally
+    zCounter.val++;
+    el.style.zIndex = zCounter.val;
+  });
+
+  // Right-click → context menu
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    ctxTargetId = el.dataset.id;
+    showCtxMenu(e.clientX, e.clientY);
+  });
+
+  // Scroll to resize
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    let size = parseInt(el.style.width) || 120;
+    size = Math.max(30, Math.min(500, size + (e.deltaY < 0 ? 12 : -12)));
+    el.style.width = size + 'px';
+    db.ref('rooms/' + currentRoom + '/stickers/' + el.dataset.id).update({ size });
+  }, { passive: false });
+}
+
+// Single global pointermove / pointerup
+document.addEventListener('pointermove', e => {
+  if (!activeId || e.pointerId !== activePtr) return;
+  const el = document.querySelector(`#sticker-layer img[data-id="${activeId}"]`);
+  if (!el) return;
+
+  const x = e.pageX - offsetX;
+  const y = e.pageY - offsetY;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+
+  const now  = Date.now();
+  const last = lastWrite.get(activeId) || 0;
+  if (now - last < 40) return;
+  lastWrite.set(activeId, now);
+  db.ref('rooms/' + currentRoom + '/stickers/' + activeId).update({ x, y });
+});
+
+document.addEventListener('pointerup', e => {
+  if (e.pointerId !== activePtr) return;
+  if (activeId) {
+    const el = document.querySelector(`#sticker-layer img[data-id="${activeId}"]`);
+    if (el) {
+      el.style.cursor = 'grab';
+      // Final position write
+      db.ref('rooms/' + currentRoom + '/stickers/' + activeId).update({
+        x: parseInt(el.style.left),
+        y: parseInt(el.style.top),
+        z: parseInt(el.style.zIndex)
+      });
+    }
+  }
+  activeId  = null;
+  activePtr = null;
+});
+
+// ─────────────────────────────────────────────
+// CONTEXT MENU
+// ─────────────────────────────────────────────
+function showCtxMenu(x, y) {
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  m.style.left = x + 'px';
+  m.style.top  = y + 'px';
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('ctx-menu').style.display = 'none';
+});
+
+function deleteActiveSticker() {
+  if (!ctxTargetId) return;
+  db.ref('rooms/' + currentRoom + '/stickers/' + ctxTargetId).remove();
+  ctxTargetId = null;
+}
+
+function bringToFront() {
+  if (!ctxTargetId) return;
+  zCounter.val++;
+  db.ref('rooms/' + currentRoom + '/stickers/' + ctxTargetId).update({ z: zCounter.val });
+  ctxTargetId = null;
+}
+
+// ─────────────────────────────────────────────
+// CUSTOM IMAGE UPLOAD
+// ─────────────────────────────────────────────
+document.getElementById('uploader').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2 MB'); return; }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    // Store as data-URL in Firebase (fine for small images)
+    addSticker(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// ─────────────────────────────────────────────
+// BACKGROUND IMAGE
+// ─────────────────────────────────────────────
+const DEFAULT_BG = 'https://raw.githubusercontent.com/tisavadaliya/hangout/main/room.jpg';
+
+function setupBg() {
+  db.ref('rooms/' + currentRoom + '/bg').on('value', snap => {
+    const url = snap.val() || DEFAULT_BG;
+    document.getElementById('room-bg').src = url;
+  });
+}
+
+function resetBg() {
+  db.ref('rooms/' + currentRoom + '/bg').set(DEFAULT_BG);
+}
+
+document.getElementById('bg-uploader').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5 MB'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    db.ref('rooms/' + currentRoom + '/bg').set(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// Enter key on room input
+document.getElementById('roomInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinRoom();
+});
 </script>
 </body>
 </html>
