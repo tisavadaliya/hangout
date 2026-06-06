@@ -3,197 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hangout Rooms</title>
+<title>☽ hangout</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0d0d14;
-    color: #eee;
-    overflow: hidden;
-    height: 100vh;
-    touch-action: none;
-  }
+:root {
+  --accent: #6c3fcf;
+  --accent-light: #8b63e8;
+  --accent-pale: #c8b4f8;
+  --accent-bg: rgba(108,63,207,0.15);
+  --accent-border: rgba(108,63,207,0.3);
+  --panel-bg: rgba(15,15,25,0.92);
+  --border: #3a3a5c;
+  --input-bg: #1a1a2e;
+}
 
-  /* ── ROOM PICKER OVERLAY ── */
-  #room-picker {
-    position: fixed; inset: 0;
-    background: rgba(10, 10, 20, 0.97);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 20px; z-index: 9999;
-  }
-  #room-picker h1 { font-size: 2rem; letter-spacing: 2px; color: #c8b4f8; }
-  #room-picker p  { color: #888; font-size: 0.9rem; }
-  .room-input-row {
-    display: flex; gap: 8px;
-  }
-  .room-input-row input {
-    padding: 10px 16px; border-radius: 8px;
-    border: 1px solid #444; background: #1a1a2e;
-    color: #eee; font-size: 1rem; width: 220px;
-    outline: none;
-  }
-  .room-input-row input:focus { border-color: #8b63e8; }
-  .btn {
-    padding: 10px 20px; border-radius: 8px;
-    border: none; cursor: pointer; font-size: 0.95rem;
-    background: #6c3fcf; color: #fff;
-    transition: background 0.2s;
-  }
-  .btn:hover { background: #8b63e8; }
-  .btn.ghost {
-    background: transparent; border: 1px solid #555; color: #aaa;
-  }
-  .btn.ghost:hover { border-color: #8b63e8; color: #c8b4f8; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0d0d14;
+  color: #eee;
+  overflow: hidden;
+  height: 100vh;
+  touch-action: none;
+  user-select: none;
+}
 
-  #username-row {
-    display: flex; gap: 8px; align-items: center;
-  }
-  #username-row label { color: #888; font-size: 0.85rem; }
-  #username-row input {
-    padding: 8px 12px; border-radius: 8px;
-    border: 1px solid #444; background: #1a1a2e;
-    color: #eee; font-size: 0.9rem; width: 160px; outline: none;
-  }
+/* ── ROOM PICKER ── */
+#room-picker {
+  position: fixed; inset: 0;
+  background: rgba(10,10,20,0.97);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; z-index: 9999;
+}
+#room-picker h1 { font-size: 2rem; letter-spacing: 2px; color: var(--accent-pale); }
+#room-picker p  { color: #888; font-size: 0.85rem; }
 
-  /* ── MAIN APP ── */
-  #app { display: none; position: relative; width: 100vw; height: 100vh; }
+.picker-section {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #2a2a40;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+  width: 340px;
+}
+.picker-section label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
 
-  #room-bg {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
-  }
+.picker-row { display: flex; gap: 8px; align-items: center; }
+.picker-row input, .picker-section input[type=text], .picker-section input[type=password] {
+  flex: 1; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid #444; background: var(--input-bg);
+  color: #eee; font-size: 0.9rem; outline: none;
+}
+.picker-row input:focus, .picker-section input:focus { border-color: var(--accent); }
 
-  #sticker-layer {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-  }
+/* avatar picker */
+.avatar-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.emo-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid transparent; background: #1a1a2e;
+  font-size: 1.1rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+}
+.emo-btn.selected { border-color: var(--accent); }
+.emo-btn:hover { border-color: var(--accent-light); }
+#pfp-preview {
+  width: 36px; height: 36px; border-radius: 50%;
+  object-fit: cover; border: 2px solid var(--accent);
+  display: none;
+}
+#pfp-upload-label {
+  padding: 6px 10px; border-radius: 8px; font-size: 0.75rem;
+  border: 1px solid #444; background: #1a1a2e; color: #aaa;
+  cursor: pointer;
+}
+#pfp-upload-label:hover { border-color: var(--accent); color: var(--accent-pale); }
 
-  /* ── SIDEBAR ── */
-  #sidebar {
-    position: absolute; left: 10px; top: 10px; z-index: 100;
-    background: rgba(15, 15, 25, 0.92);
-    border: 1px solid #3a3a5c;
-    border-radius: 12px; padding: 12px 10px;
-    display: flex; flex-direction: column; gap: 6px;
-    max-height: calc(100vh - 20px); overflow-y: auto;
-    backdrop-filter: blur(8px);
-    width: 130px;
-  }
-  .sidebar-label {
-    font-size: 0.65rem; color: #666; text-transform: uppercase;
-    letter-spacing: 1px; padding: 4px 0 2px;
-  }
-  .sticker-btn {
-    padding: 7px 10px; border-radius: 8px;
-    border: 1px solid #2e2e4a; background: #1a1a2e;
-    color: #ccc; font-size: 0.8rem;
-    cursor: pointer; text-align: left;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .sticker-btn:hover { background: #2a2a4a; border-color: #6c3fcf; color: #fff; }
+.btn {
+  padding: 9px 18px; border-radius: 8px;
+  border: none; cursor: pointer; font-size: 0.9rem;
+  background: var(--accent); color: #fff;
+  transition: background 0.2s; white-space: nowrap;
+}
+.btn:hover { background: var(--accent-light); }
+.btn.ghost {
+  background: transparent; border: 1px solid #555; color: #aaa;
+}
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent-pale); }
 
-  .room-badge {
-    font-size: 0.65rem; color: #8b63e8;
-    padding: 4px 8px; background: rgba(108,63,207,0.15);
-    border-radius: 6px; text-align: center; cursor: pointer;
-    border: 1px solid rgba(108,63,207,0.3);
-  }
-  .room-badge:hover { background: rgba(108,63,207,0.3); }
+.quick-rooms { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
-  /* ── CHATBOX ── */
-  #chatbox {
-    position: absolute; right: 10px; bottom: 10px;
-    width: 260px; height: 320px;
-    background: rgba(15, 15, 25, 0.92);
-    border: 1px solid #3a3a5c; border-radius: 12px;
-    display: flex; flex-direction: column;
-    z-index: 100; backdrop-filter: blur(8px);
-    overflow: hidden;
-  }
-  #chat-header {
-    padding: 10px 14px; font-size: 0.75rem;
-    color: #8b63e8; border-bottom: 1px solid #2a2a4a;
-    display: flex; justify-content: space-between;
-    align-items: center;
-  }
-  #online-count { color: #888; font-size: 0.7rem; }
-  #messages {
-    flex: 1; overflow-y: auto; padding: 10px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  #messages::-webkit-scrollbar { width: 4px; }
-  #messages::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 2px; }
-  .msg { font-size: 0.78rem; line-height: 1.4; }
-  .msg .author { color: #8b63e8; font-weight: 600; margin-right: 4px; }
-  .msg.system { color: #555; font-style: italic; font-size: 0.72rem; }
-  #chat-input-row {
-    display: flex; gap: 6px; padding: 8px;
-    border-top: 1px solid #2a2a4a;
-  }
-  #chatInput {
-    flex: 1; padding: 7px 10px; border-radius: 7px;
-    border: 1px solid #3a3a5c; background: #1a1a2e;
-    color: #eee; font-size: 0.8rem; outline: none;
-  }
-  #chatInput:focus { border-color: #6c3fcf; }
-  #sendBtn {
-    padding: 7px 12px; border-radius: 7px;
-    border: none; background: #6c3fcf; color: #fff;
-    cursor: pointer; font-size: 0.8rem;
-  }
-  #sendBtn:hover { background: #8b63e8; }
+/* password toggle */
+.lock-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #888; }
+.lock-row input[type=checkbox] { accent-color: var(--accent); }
+#room-password-wrap { display: none; }
 
-  /* ── STICKER context menu ── */
-  #ctx-menu {
-    position: fixed; display: none;
-    background: rgba(20,20,35,0.97); border: 1px solid #3a3a5c;
-    border-radius: 8px; padding: 6px 0; z-index: 500;
-    min-width: 120px; backdrop-filter: blur(8px);
-  }
-  #ctx-menu button {
-    width: 100%; text-align: left; padding: 7px 14px;
-    background: none; border: none; color: #ccc;
-    font-size: 0.8rem; cursor: pointer;
-  }
-  #ctx-menu button:hover { background: #2a2a4a; color: #fff; }
+/* ── MAIN APP ── */
+#app { display: none; position: relative; width: 100vw; height: 100vh; }
 
-  /* ── FILE UPLOAD ── */
-  #upload-label {
-    position: absolute; left: 10px; bottom: 10px; z-index: 100;
-    padding: 7px 12px; border-radius: 8px;
-    background: rgba(15,15,25,0.92); border: 1px solid #3a3a5c;
-    color: #888; font-size: 0.75rem; cursor: pointer;
-    backdrop-filter: blur(8px);
-    transition: color 0.2s;
-  }
-  #upload-label:hover { color: #c8b4f8; border-color: #6c3fcf; }
-  #upload-label input { display: none; }
+#room-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+#sticker-layer, #avatar-layer, #cursor-layer {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+#sticker-layer { pointer-events: all; }
+
+/* ── TOGGLE BUTTON (hamburger) ── */
+#sidebar-toggle {
+  position: absolute; left: 10px; top: 10px; z-index: 200;
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  color: #eee; font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+}
+#sidebar-toggle:hover { border-color: var(--accent); }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  position: absolute; left: 10px; top: 56px; z-index: 150;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 8px;
+  display: flex; flex-direction: column; gap: 5px;
+  max-height: calc(100vh - 70px); overflow-y: auto;
+  backdrop-filter: blur(8px);
+  width: 136px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+#sidebar.hidden {
+  opacity: 0; pointer-events: none;
+  transform: translateX(-10px);
+}
+#sidebar::-webkit-scrollbar { width: 3px; }
+#sidebar::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 2px; }
+
+.sidebar-label {
+  font-size: 0.6rem; color: #555; text-transform: uppercase;
+  letter-spacing: 1px; padding: 6px 4px 2px;
+}
+.sticker-btn {
+  padding: 6px 8px; border-radius: 7px;
+  border: 1px solid #2e2e4a; background: #1a1a2e;
+  color: #ccc; font-size: 0.78rem;
+  cursor: pointer; text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+.sticker-btn:hover { background: #2a2a4a; border-color: var(--accent); color: #fff; }
+
+.room-badge {
+  font-size: 0.65rem; color: var(--accent-light);
+  padding: 4px 8px; background: var(--accent-bg);
+  border-radius: 6px; text-align: center; cursor: pointer;
+  border: 1px solid var(--accent-border);
+}
+.room-badge:hover { background: rgba(108,63,207,0.3); }
+
+/* theme swatches */
+.swatch-row { display: flex; gap: 5px; flex-wrap: wrap; padding: 2px 0; }
+.swatch {
+  width: 20px; height: 20px; border-radius: 50%;
+  cursor: pointer; border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+.swatch:hover, .swatch.active { border-color: #fff; }
+
+/* ── CHATBOX ── */
+#chatbox {
+  position: absolute; right: 10px; bottom: 10px;
+  width: 260px; height: 320px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border); border-radius: 12px;
+  display: flex; flex-direction: column;
+  z-index: 100; backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+#chat-header {
+  padding: 9px 12px; font-size: 0.72rem;
+  color: var(--accent-light); border-bottom: 1px solid #2a2a4a;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer;
+}
+#online-count { color: #666; font-size: 0.68rem; }
+#messages {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+#messages::-webkit-scrollbar { width: 3px; }
+#messages::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 2px; }
+.msg { font-size: 0.76rem; line-height: 1.4; user-select: text; }
+.msg .author { color: var(--accent-light); font-weight: 600; margin-right: 4px; }
+.msg.system { color: #444; font-style: italic; font-size: 0.7rem; }
+#chat-input-row {
+  display: flex; gap: 5px; padding: 7px;
+  border-top: 1px solid #2a2a4a;
+}
+#chatInput {
+  flex: 1; padding: 6px 9px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: #eee; font-size: 0.78rem; outline: none;
+  user-select: text;
+}
+#chatInput:focus { border-color: var(--accent); }
+#sendBtn {
+  padding: 6px 11px; border-radius: 7px;
+  border: none; background: var(--accent); color: #fff;
+  cursor: pointer; font-size: 0.78rem;
+}
+#sendBtn:hover { background: var(--accent-light); }
+
+/* ── YOUTUBE PANEL ── */
+#yt-panel {
+  position: absolute; right: 10px; top: 10px;
+  width: 300px; z-index: 100;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+#yt-header {
+  padding: 8px 12px; font-size: 0.72rem; color: var(--accent-light);
+  border-bottom: 1px solid #2a2a4a;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer;
+}
+#yt-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+#yt-body.hidden { display: none; }
+#yt-input-row { display: flex; gap: 6px; }
+#ytInput {
+  flex: 1; padding: 6px 9px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: #eee; font-size: 0.76rem; outline: none;
+  user-select: text;
+}
+#ytInput:focus { border-color: var(--accent); }
+#ytAddBtn {
+  padding: 6px 10px; border-radius: 7px;
+  border: none; background: var(--accent); color: #fff;
+  cursor: pointer; font-size: 0.76rem;
+}
+#yt-queue { display: flex; flex-direction: column; gap: 4px; max-height: 80px; overflow-y: auto; }
+.yt-queue-item {
+  font-size: 0.7rem; color: #aaa; padding: 4px 6px;
+  background: #1a1a2e; border-radius: 5px;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 4px;
+}
+.yt-queue-item.playing { color: var(--accent-pale); border-left: 2px solid var(--accent); }
+.yt-queue-item button {
+  background: none; border: none; color: #555; cursor: pointer; font-size: 0.7rem; padding: 0 2px;
+}
+.yt-queue-item button:hover { color: #e06; }
+#yt-controls { display: flex; gap: 6px; align-items: center; }
+#yt-controls button {
+  padding: 5px 10px; border-radius: 6px;
+  border: none; background: #2a2a4a; color: #ccc;
+  cursor: pointer; font-size: 0.72rem;
+}
+#yt-controls button:hover { background: var(--accent); color: #fff; }
+#yt-now-playing { font-size: 0.68rem; color: #555; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#yt-frame-wrap { display: none; }
+#yt-frame-wrap.visible { display: block; }
+#yt-frame-wrap iframe { width: 100%; height: 168px; border: none; border-radius: 0 0 8px 8px; }
+
+/* ── CURSORS ── */
+.remote-cursor {
+  position: absolute; pointer-events: none;
+  transition: left 0.05s linear, top 0.05s linear;
+  z-index: 300;
+}
+.cursor-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  margin-bottom: 2px;
+}
+.cursor-label {
+  font-size: 0.62rem; color: #fff;
+  background: rgba(0,0,0,0.6);
+  padding: 1px 5px; border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── AVATARS ── */
+.avatar-bubble {
+  position: absolute; pointer-events: all;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; cursor: grab; z-index: 110;
+}
+.avatar-bubble:active { cursor: grabbing; }
+.avatar-img {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid var(--accent);
+  object-fit: cover;
+  background: #1a1a2e;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+}
+.avatar-name {
+  font-size: 0.62rem; color: #fff;
+  background: rgba(0,0,0,0.55);
+  padding: 1px 6px; border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── CONTEXT MENU ── */
+#ctx-menu {
+  position: fixed; display: none;
+  background: rgba(20,20,35,0.97); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 0; z-index: 500;
+  min-width: 130px; backdrop-filter: blur(8px);
+}
+#ctx-menu button {
+  width: 100%; text-align: left; padding: 6px 14px;
+  background: none; border: none; color: #ccc;
+  font-size: 0.78rem; cursor: pointer;
+}
+#ctx-menu button:hover { background: #2a2a4a; color: #fff; }
+
+/* ── STICKER UPLOAD ── */
+#upload-label {
+  position: absolute; left: 10px; bottom: 10px; z-index: 100;
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  color: #777; font-size: 0.72rem; cursor: pointer;
+  backdrop-filter: blur(8px); transition: color 0.2s;
+}
+#upload-label:hover { color: var(--accent-pale); border-color: var(--accent); }
+#upload-label input { display: none; }
+
+/* ── FLOATING REACTIONS ── */
+@keyframes floatUp {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-180px) scale(1.4); opacity: 0; }
+}
+.reaction-float {
+  position: fixed; font-size: 1.8rem; pointer-events: none;
+  animation: floatUp 2s ease-out forwards; z-index: 999;
+}
+
+/* ── PASSWORD MODAL ── */
+#pw-modal {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(10,10,20,0.97);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+#pw-modal h2 { color: var(--accent-pale); font-size: 1.2rem; }
+#pw-modal p  { color: #666; font-size: 0.8rem; }
+#pw-modal input {
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid #444; background: var(--input-bg);
+  color: #eee; font-size: 1rem; width: 220px; outline: none;
+  text-align: center; letter-spacing: 2px;
+}
+#pw-error { color: #e06; font-size: 0.8rem; display: none; }
 </style>
 </head>
 <body>
 
+<!-- ── PASSWORD MODAL ── -->
+<div id="pw-modal">
+  <h2>🔒 password required</h2>
+  <p id="pw-room-name"></p>
+  <input id="pwInput" type="password" placeholder="enter password…">
+  <p id="pw-error">wrong password, try again</p>
+  <div style="display:flex;gap:8px">
+    <button class="btn" onclick="submitPassword()">Enter →</button>
+    <button class="btn ghost" onclick="cancelPassword()">Cancel</button>
+  </div>
+</div>
+
 <!-- ── ROOM PICKER ── -->
 <div id="room-picker">
   <h1>☽ hangout</h1>
-  <p>Enter a room name to join or create a room</p>
 
-  <div id="username-row">
-    <label>Your name</label>
-    <input id="usernameInput" placeholder="guest" maxlength="20">
+  <!-- Name + avatar -->
+  <div class="picker-section">
+    <label>Your name & avatar</label>
+    <div class="picker-row">
+      <input type="text" id="usernameInput" placeholder="your name…" maxlength="20" style="flex:1">
+    </div>
+    <div class="avatar-row">
+      <span class="emo-btn selected" data-emo="🌙" onclick="selectEmoji(this)">🌙</span>
+      <span class="emo-btn" data-emo="⭐" onclick="selectEmoji(this)">⭐</span>
+      <span class="emo-btn" data-emo="🌸" onclick="selectEmoji(this)">🌸</span>
+      <span class="emo-btn" data-emo="🐈" onclick="selectEmoji(this)">🐈</span>
+      <span class="emo-btn" data-emo="🔮" onclick="selectEmoji(this)">🔮</span>
+      <span class="emo-btn" data-emo="🦋" onclick="selectEmoji(this)">🦋</span>
+      <span class="emo-btn" data-emo="🍄" onclick="selectEmoji(this)">🍄</span>
+      <label id="pfp-upload-label">
+        📷 upload
+        <input type="file" id="pfpUploader" accept="image/*" style="display:none">
+      </label>
+      <img id="pfp-preview" src="" alt="pfp">
+    </div>
   </div>
 
-  <div class="room-input-row">
-    <input id="roomInput" placeholder="room name…" maxlength="30">
-    <button class="btn" onclick="joinRoom()">Join →</button>
+  <!-- Room -->
+  <div class="picker-section">
+    <label>Join or create a room</label>
+    <div class="picker-row">
+      <input type="text" id="roomInput" placeholder="room name…" maxlength="30">
+      <button class="btn" onclick="joinRoom()">Join →</button>
+    </div>
+    <div class="lock-row">
+      <input type="checkbox" id="hasPassword" onchange="togglePasswordField()">
+      <label for="hasPassword">Password protect this room</label>
+    </div>
+    <div id="room-password-wrap">
+      <input type="password" id="roomPasswordInput" placeholder="set a password…" maxlength="30">
+    </div>
   </div>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:320px">
+  <div class="quick-rooms">
     <button class="btn ghost" onclick="quickJoin('cozy-corner')">🌙 cozy corner</button>
     <button class="btn ghost" onclick="quickJoin('study-hall')">📚 study hall</button>
     <button class="btn ghost" onclick="quickJoin('chill-zone')">🕯️ chill zone</button>
@@ -202,15 +431,20 @@
 
 <!-- ── MAIN APP ── -->
 <div id="app">
-  <img id="room-bg" src="room.jpg" alt="room background">
-
+  <img id="room-bg" src="" alt="background">
   <div id="sticker-layer"></div>
+  <div id="avatar-layer"></div>
+  <div id="cursor-layer"></div>
+
+  <!-- Sidebar toggle -->
+  <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
 
   <!-- Sidebar -->
   <div id="sidebar">
-    <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave room</div>
-    <div class="sidebar-label">Add sticker</div>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/black-cat.png')">🐈‍⬛ Black Cat</button>
+    <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave</div>
+
+    <div class="sidebar-label">Stickers</div>
+    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/black-cat.png')">🐈 Cat</button>
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/candle.png')">🕯️ Candle</button>
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/books.png')">📚 Books</button>
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/crystal-ball.png')">🔮 Crystal Ball</button>
@@ -222,49 +456,94 @@
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food.png')">🦴 Dog Food</button>
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food2.png')">🦴 Dog Food 2</button>
     <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/plant2.png')">🌿 Plant 2</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/black-dog.png')">🐕 Black Dog</button>
-    <div class="sidebar-label">Room background</div>
-    <label class="sticker-btn" style="cursor:pointer; text-align:center;">
+
+    <div class="sidebar-label">Reactions</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:2px 0">
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('✨')">✨</button>
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('❤️')">❤️</button>
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('😂')">😂</button>
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('👻')">👻</button>
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('🌙')">🌙</button>
+      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('🔥')">🔥</button>
+    </div>
+
+    <div class="sidebar-label">Background</div>
+    <label class="sticker-btn" style="cursor:pointer;text-align:center;">
       🖼️ Change BG
       <input type="file" id="bg-uploader" accept="image/*" style="display:none">
     </label>
     <button class="sticker-btn" onclick="resetBg()" style="text-align:center;">↺ Reset BG</button>
+
+    <div class="sidebar-label">Theme colour</div>
+    <div class="swatch-row">
+      <div class="swatch active" style="background:#6c3fcf" onclick="setTheme('#6c3fcf','#8b63e8','#c8b4f8')"></div>
+      <div class="swatch" style="background:#c94f7c" onclick="setTheme('#c94f7c','#e06c95','#f4b8ce')"></div>
+      <div class="swatch" style="background:#2d7dd2" onclick="setTheme('#2d7dd2','#4a9be8','#a8d0f8')"></div>
+      <div class="swatch" style="background:#1a9e6e" onclick="setTheme('#1a9e6e','#25c98c','#90ecd4')"></div>
+      <div class="swatch" style="background:#d4862a" onclick="setTheme('#d4862a','#f0a040','#fad4a0')"></div>
+      <div class="swatch" style="background:#888" onclick="setTheme('#666','#888','#ccc')"></div>
+    </div>
   </div>
 
   <!-- Chat -->
   <div id="chatbox">
-    <div id="chat-header">
-      <span id="roomLabel">room</span>
+    <div id="chat-header" onclick="toggleChat()">
+      <span id="roomLabel">💬 room</span>
       <span id="online-count">0 online</span>
     </div>
-    <div id="messages"></div>
-    <div id="chat-input-row">
-      <input id="chatInput" placeholder="say something…" maxlength="200">
-      <button id="sendBtn" onclick="sendChat()">→</button>
+    <div id="chat-body">
+      <div id="messages"></div>
+      <div id="chat-input-row">
+        <input id="chatInput" placeholder="say something…" maxlength="200">
+        <button id="sendBtn" onclick="sendChat()">→</button>
+      </div>
     </div>
   </div>
 
-  <!-- Custom image upload -->
+  <!-- YouTube panel -->
+  <div id="yt-panel">
+    <div id="yt-header" onclick="toggleYT()">
+      <span>🎵 music / video</span>
+      <span id="yt-toggle-icon">▾</span>
+    </div>
+    <div id="yt-body">
+      <div id="yt-input-row">
+        <input id="ytInput" placeholder="paste YouTube URL…">
+        <button id="ytAddBtn" onclick="addToQueue()">Add</button>
+      </div>
+      <div id="yt-queue"></div>
+      <div id="yt-controls">
+        <button onclick="ytPrev()">⏮</button>
+        <button onclick="ytPlayPause()" id="ytPlayBtn">⏸</button>
+        <button onclick="ytNext()">⏭</button>
+        <button onclick="toggleVideo()" id="ytVidBtn">🎬</button>
+        <span id="yt-now-playing">nothing playing</span>
+      </div>
+      <div id="yt-frame-wrap">
+        <iframe id="yt-frame" allowfullscreen allow="autoplay"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticker upload -->
   <label id="upload-label">
     📎 upload sticker
     <input type="file" id="uploader" accept="image/*">
   </label>
 
-  <!-- Context menu for stickers -->
+  <!-- Context menu -->
   <div id="ctx-menu">
-    <button onclick="deleteActiveSticker()">🗑 Delete sticker</button>
+    <button onclick="deleteActiveSticker()">🗑 Delete</button>
     <button onclick="bringToFront()">↑ Bring to front</button>
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-
 <script>
-// ─────────────────────────────────────────────
-// PASTE YOUR FIREBASE CONFIG HERE
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+// FIREBASE CONFIG
+// ─────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyC7G_6Rn6QSg7cwWzE_byfGO1TYPPDLXBw",
   authDomain: "hangout-place-32686.firebaseapp.com",
@@ -274,87 +553,185 @@ const firebaseConfig = {
   messagingSenderId: "1059833051609",
   appId: "1:1059833051609:web:d505e573641deb025e41c8"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
 // STATE
-// ─────────────────────────────────────────────
-let currentRoom  = null;
-let currentUser  = 'guest';
-let presenceRef  = null;
-let stickerRef   = null;
-let chatRef      = null;
-let activeId     = null;   // sticker being dragged
-let activePtr    = null;   // pointer id
+// ─────────────────────────────────────────
+const DEFAULT_BG = 'https://raw.githubusercontent.com/tisavadaliya/hangout/main/default-bg.png';
+let currentRoom = null;
+let currentUser = 'guest';
+let currentUserId = null;
+let selectedEmoji = '🌙';
+let pfpDataUrl = null;
+let presenceRef = null;
+let activeId = null, activePtr = null;
 let offsetX = 0, offsetY = 0;
-let ctxTargetId  = null;   // sticker right-clicked
-const lastWrite  = new Map();
-const zCounter   = { val: 100 };
+let ctxTargetId = null;
+const lastWrite = new Map();
+const zCounter = { val: 100 };
+let sidebarOpen = true;
+let chatOpen = true;
+let ytOpen = true;
+let videoVisible = false;
+let ytQueue = [];
+let ytCurrentIdx = 0;
+let ytPlaying = true;
+let pendingRoom = null, pendingPassword = null;
+const CURSOR_COLORS = ['#8b63e8','#e06c95','#4a9be8','#25c98c','#f0a040','#e05252'];
+const myColor = CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
 
-// ─────────────────────────────────────────────
-// ROOM PICKER
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+// AVATAR PICKER
+// ─────────────────────────────────────────
+function selectEmoji(el) {
+  document.querySelectorAll('.emo-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedEmoji = el.dataset.emo;
+  pfpDataUrl = null;
+  document.getElementById('pfp-preview').style.display = 'none';
+}
+
+document.getElementById('pfpUploader').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    pfpDataUrl = ev.target.result;
+    const preview = document.getElementById('pfp-preview');
+    preview.src = pfpDataUrl;
+    preview.style.display = 'block';
+    document.querySelectorAll('.emo-btn').forEach(b => b.classList.remove('selected'));
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// ─────────────────────────────────────────
+// PASSWORD PROTECTION
+// ─────────────────────────────────────────
+function togglePasswordField() {
+  document.getElementById('room-password-wrap').style.display =
+    document.getElementById('hasPassword').checked ? 'block' : 'none';
+}
+
+async function joinRoom() {
+  const name = document.getElementById('roomInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  const user = document.getElementById('usernameInput').value.trim() || ('guest' + Math.floor(Math.random()*1000));
+  if (!name) return;
+
+  const wantsPassword = document.getElementById('hasPassword').checked;
+  const setPassword = document.getElementById('roomPasswordInput').value.trim();
+
+  // Check if room already has a password set
+  const pwSnap = await db.ref('rooms/' + name + '/password').get();
+  const existingPw = pwSnap.val();
+
+  if (existingPw) {
+    // Room is locked — show password modal
+    pendingRoom = name;
+    pendingPassword = existingPw;
+    currentUser = user;
+    document.getElementById('pw-room-name').textContent = '🔒 ' + name;
+    document.getElementById('pw-modal').style.display = 'flex';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pw-error').style.display = 'none';
+    return;
+  }
+
+  // If creator wants to set a password, save it
+  if (wantsPassword && setPassword) {
+    await db.ref('rooms/' + name + '/password').set(setPassword);
+  }
+
+  currentUser = user;
+  enterRoom(name);
+}
+
+function submitPassword() {
+  const entered = document.getElementById('pwInput').value.trim();
+  if (entered === pendingPassword) {
+    document.getElementById('pw-modal').style.display = 'none';
+    enterRoom(pendingRoom);
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+  }
+}
+
+function cancelPassword() {
+  document.getElementById('pw-modal').style.display = 'none';
+  pendingRoom = null; pendingPassword = null;
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitPassword();
+});
+
 function quickJoin(name) {
   document.getElementById('roomInput').value = name;
   joinRoom();
 }
 
-function joinRoom() {
-  const name = document.getElementById('roomInput').value.trim().toLowerCase().replace(/\s+/g, '-');
-  const user = document.getElementById('usernameInput').value.trim() || ('guest' + Math.floor(Math.random() * 1000));
-  if (!name) return;
-
+// ─────────────────────────────────────────
+// ENTER ROOM
+// ─────────────────────────────────────────
+function enterRoom(name) {
   currentRoom = name;
-  currentUser = user;
-
+  currentUserId = currentUser + '_' + Date.now();
   document.getElementById('room-picker').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('roomBadge').textContent = '🌙 ' + name;
-  document.getElementById('roomLabel').textContent  = '💬 ' + name;
+  document.getElementById('roomLabel').textContent = '💬 ' + name;
 
   setupPresence();
   setupStickers();
   setupChat();
   setupBg();
+  setupCursors();
+  setupReactions();
+  setupYT();
+  setupAvatar();
 }
 
 function leaveRoom() {
   if (presenceRef) presenceRef.remove();
-  if (stickerRef)  db.ref('rooms/' + currentRoom + '/stickers').off();
-  if (chatRef)     db.ref('rooms/' + currentRoom + '/chat').off();
-  db.ref('rooms/' + currentRoom + '/presence').off();
-  db.ref('rooms/' + currentRoom + '/bg').off();
-
+  // remove my cursor
+  db.ref('rooms/' + currentRoom + '/cursors/' + currentUserId).remove();
+  // remove my avatar
+  db.ref('rooms/' + currentRoom + '/avatars/' + currentUserId).remove();
+  ['stickers','chat','presence','bg','cursors','reactions','yt','avatars'].forEach(k => {
+    db.ref('rooms/' + currentRoom + '/' + k).off();
+  });
   document.getElementById('app').style.display = 'none';
   document.getElementById('room-picker').style.display = 'flex';
   document.getElementById('sticker-layer').innerHTML = '';
+  document.getElementById('avatar-layer').innerHTML = '';
+  document.getElementById('cursor-layer').innerHTML = '';
   document.getElementById('messages').innerHTML = '';
+  document.getElementById('yt-queue').innerHTML = '';
+  ytQueue = []; ytCurrentIdx = 0;
   currentRoom = null;
 }
 
-// ─────────────────────────────────────────────
-// PRESENCE (online count)
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+// PRESENCE
+// ─────────────────────────────────────────
 function setupPresence() {
-  presenceRef = db.ref('rooms/' + currentRoom + '/presence/' + currentUser + '_' + Date.now());
+  presenceRef = db.ref('rooms/' + currentRoom + '/presence/' + currentUserId);
   presenceRef.set({ user: currentUser, joined: Date.now() });
   presenceRef.onDisconnect().remove();
-
   db.ref('rooms/' + currentRoom + '/presence').on('value', snap => {
     const count = snap.exists() ? Object.keys(snap.val()).length : 0;
     document.getElementById('online-count').textContent = count + ' online';
   });
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
 // CHAT
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
 function setupChat() {
-  chatRef = db.ref('rooms/' + currentRoom + '/chat');
-
-  // Keep only last 60 messages
+  const chatRef = db.ref('rooms/' + currentRoom + '/chat');
   chatRef.limitToLast(60).on('value', snap => {
     const msgs = document.getElementById('messages');
     msgs.innerHTML = '';
@@ -373,50 +750,83 @@ function setupChat() {
     });
     msgs.scrollTop = msgs.scrollHeight;
   });
-
-  // Announce join
-  chatRef.push({ system: true, text: currentUser + ' joined the room', ts: Date.now() });
+  chatRef.push({ system: true, text: currentUser + ' joined ✨', ts: Date.now() });
 }
 
 function sendChat() {
   const input = document.getElementById('chatInput');
-  const text  = input.value.trim();
+  const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  db.ref('rooms/' + currentRoom + '/chat').push({
-    user: currentUser, text, ts: Date.now()
-  });
+  db.ref('rooms/' + currentRoom + '/chat').push({ user: currentUser, text, ts: Date.now() });
 }
 
 document.getElementById('chatInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendChat();
 });
 
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-body').style.display = chatOpen ? 'flex' : 'none';
+  if (chatOpen) document.getElementById('chat-body').style.flexDirection = 'column';
+}
+
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ─────────────────────────────────────────────
-// STICKERS
-// ─────────────────────────────────────────────
-function setupStickers() {
-  stickerRef = db.ref('rooms/' + currentRoom + '/stickers');
-  stickerRef.on('value', snap => {
-    const data  = snap.val() || {};
-    const alive = new Set(Object.keys(data));
+// ─────────────────────────────────────────
+// SIDEBAR TOGGLE
+// ─────────────────────────────────────────
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('hidden', !sidebarOpen);
+  document.getElementById('sidebar-toggle').textContent = sidebarOpen ? '☰' : '☰';
+}
 
-    // Remove deleted stickers
+// ─────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────
+function setTheme(accent, light, pale) {
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent-light', light);
+  document.documentElement.style.setProperty('--accent-pale', pale);
+  document.documentElement.style.setProperty('--accent-bg', accent + '26');
+  document.documentElement.style.setProperty('--accent-border', accent + '55');
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  // sync theme to room
+  db.ref('rooms/' + currentRoom + '/theme').set({ accent, light, pale });
+}
+
+function setupTheme() {
+  db.ref('rooms/' + currentRoom + '/theme').on('value', snap => {
+    if (!snap.exists()) return;
+    const { accent, light, pale } = snap.val();
+    document.documentElement.style.setProperty('--accent', accent);
+    document.documentElement.style.setProperty('--accent-light', light);
+    document.documentElement.style.setProperty('--accent-pale', pale);
+    document.documentElement.style.setProperty('--accent-bg', accent + '26');
+    document.documentElement.style.setProperty('--accent-border', accent + '55');
+  });
+}
+
+// ─────────────────────────────────────────
+// STICKERS
+// ─────────────────────────────────────────
+function setupStickers() {
+  db.ref('rooms/' + currentRoom + '/stickers').on('value', snap => {
+    const data = snap.val() || {};
+    const alive = new Set(Object.keys(data));
     document.querySelectorAll('#sticker-layer img[data-id]').forEach(el => {
       if (!alive.has(el.dataset.id)) el.remove();
     });
-
-    // Update / create
     Object.entries(data).forEach(([id, item]) => renderSticker(id, item));
   });
 }
 
 function addSticker(src, x, y, size = 120) {
-  x = x ?? Math.round(100 + Math.random() * (window.innerWidth  - 300));
+  x = x ?? Math.round(150 + Math.random() * (window.innerWidth - 400));
   y = y ?? Math.round(100 + Math.random() * (window.innerHeight - 300));
   const id = Date.now() + '_' + Math.random().toString(36).slice(2);
   db.ref('rooms/' + currentRoom + '/stickers/' + id).set({ id, src, x, y, size, z: zCounter.val++ });
@@ -428,52 +838,44 @@ function renderSticker(id, data) {
     el = document.createElement('img');
     el.dataset.id = id;
     el.style.position = 'absolute';
-    el.style.cursor   = 'grab';
+    el.style.cursor = 'grab';
     el.draggable = false;
     attachDrag(el);
     document.getElementById('sticker-layer').appendChild(el);
   }
   el.src = data.src;
-  el.style.width  = (data.size || 120) + 'px';
+  el.style.width = (data.size || 120) + 'px';
   el.style.zIndex = data.z || 100;
-
   if (id !== activeId) {
     el.style.transition = 'left 0.05s linear, top 0.05s linear';
     el.style.left = data.x + 'px';
-    el.style.top  = data.y + 'px';
+    el.style.top = data.y + 'px';
   }
 }
 
-// ─────────────────────────────────────────────
-// DRAG — single pointermove on document (not per-sticker)
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+// DRAG
+// ─────────────────────────────────────────
 function attachDrag(el) {
   el.style.touchAction = 'none';
-
   el.addEventListener('pointerdown', e => {
-    if (e.button === 2) return; // let context menu handle right-click
+    if (e.button === 2) return;
     e.preventDefault();
-    activeId  = el.dataset.id;
+    activeId = el.dataset.id;
     activePtr = e.pointerId;
     el.setPointerCapture?.(e.pointerId);
     el.style.cursor = 'grabbing';
     el.style.transition = 'none';
     offsetX = e.pageX - el.offsetLeft;
     offsetY = e.pageY - el.offsetTop;
-
-    // Bring to front locally
     zCounter.val++;
     el.style.zIndex = zCounter.val;
   });
-
-  // Right-click → context menu
   el.addEventListener('contextmenu', e => {
     e.preventDefault();
     ctxTargetId = el.dataset.id;
     showCtxMenu(e.clientX, e.clientY);
   });
-
-  // Scroll to resize
   el.addEventListener('wheel', e => {
     e.preventDefault();
     let size = parseInt(el.style.width) || 120;
@@ -483,18 +885,27 @@ function attachDrag(el) {
   }, { passive: false });
 }
 
-// Single global pointermove / pointerup
 document.addEventListener('pointermove', e => {
+  // cursor sync
+  if (currentRoom && currentUserId) {
+    const now = Date.now();
+    const last = lastWrite.get('cursor') || 0;
+    if (now - last > 40) {
+      lastWrite.set('cursor', now);
+      db.ref('rooms/' + currentRoom + '/cursors/' + currentUserId).set({
+        x: e.pageX, y: e.pageY, user: currentUser, color: myColor, ts: now
+      });
+    }
+  }
+  // sticker drag
   if (!activeId || e.pointerId !== activePtr) return;
   const el = document.querySelector(`#sticker-layer img[data-id="${activeId}"]`);
   if (!el) return;
-
   const x = e.pageX - offsetX;
   const y = e.pageY - offsetY;
   el.style.left = x + 'px';
-  el.style.top  = y + 'px';
-
-  const now  = Date.now();
+  el.style.top = y + 'px';
+  const now = Date.now();
   const last = lastWrite.get(activeId) || 0;
   if (now - last < 40) return;
   lastWrite.set(activeId, now);
@@ -507,7 +918,6 @@ document.addEventListener('pointerup', e => {
     const el = document.querySelector(`#sticker-layer img[data-id="${activeId}"]`);
     if (el) {
       el.style.cursor = 'grab';
-      // Final position write
       db.ref('rooms/' + currentRoom + '/stickers/' + activeId).update({
         x: parseInt(el.style.left),
         y: parseInt(el.style.top),
@@ -515,30 +925,26 @@ document.addEventListener('pointerup', e => {
       });
     }
   }
-  activeId  = null;
-  activePtr = null;
+  activeId = null; activePtr = null;
 });
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
 // CONTEXT MENU
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
 function showCtxMenu(x, y) {
   const m = document.getElementById('ctx-menu');
   m.style.display = 'block';
   m.style.left = x + 'px';
-  m.style.top  = y + 'px';
+  m.style.top = y + 'px';
 }
-
 document.addEventListener('click', () => {
   document.getElementById('ctx-menu').style.display = 'none';
 });
-
 function deleteActiveSticker() {
   if (!ctxTargetId) return;
   db.ref('rooms/' + currentRoom + '/stickers/' + ctxTargetId).remove();
   ctxTargetId = null;
 }
-
 function bringToFront() {
   if (!ctxTargetId) return;
   zCounter.val++;
@@ -546,52 +952,273 @@ function bringToFront() {
   ctxTargetId = null;
 }
 
-// ─────────────────────────────────────────────
-// CUSTOM IMAGE UPLOAD
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+// STICKER UPLOAD
+// ─────────────────────────────────────────
 document.getElementById('uploader').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2 MB'); return; }
-
   const reader = new FileReader();
-  reader.onload = ev => {
-    // Store as data-URL in Firebase (fine for small images)
-    addSticker(ev.target.result);
-  };
+  reader.onload = ev => addSticker(ev.target.result);
   reader.readAsDataURL(file);
   e.target.value = '';
 });
 
-// ─────────────────────────────────────────────
-// BACKGROUND IMAGE
-// ─────────────────────────────────────────────
-const DEFAULT_BG = 'https://raw.githubusercontent.com/tisavadaliya/hangout/main/default-bg.png';
-
+// ─────────────────────────────────────────
+// BACKGROUND
+// ─────────────────────────────────────────
 function setupBg() {
   db.ref('rooms/' + currentRoom + '/bg').on('value', snap => {
-    const url = snap.val() || DEFAULT_BG;
-    document.getElementById('room-bg').src = url;
+    document.getElementById('room-bg').src = snap.val() || DEFAULT_BG;
   });
 }
-
 function resetBg() {
   db.ref('rooms/' + currentRoom + '/bg').set(DEFAULT_BG);
 }
-
 document.getElementById('bg-uploader').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5 MB'); return; }
   const reader = new FileReader();
-  reader.onload = ev => {
-    db.ref('rooms/' + currentRoom + '/bg').set(ev.target.result);
-  };
+  reader.onload = ev => db.ref('rooms/' + currentRoom + '/bg').set(ev.target.result);
   reader.readAsDataURL(file);
   e.target.value = '';
 });
 
-// Enter key on room input
+// ─────────────────────────────────────────
+// LIVE CURSORS
+// ─────────────────────────────────────────
+function setupCursors() {
+  db.ref('rooms/' + currentRoom + '/cursors').on('value', snap => {
+    const data = snap.val() || {};
+    const layer = document.getElementById('cursor-layer');
+    // remove stale
+    layer.querySelectorAll('.remote-cursor').forEach(el => {
+      if (!data[el.dataset.uid] || el.dataset.uid === currentUserId) el.remove();
+    });
+    Object.entries(data).forEach(([uid, d]) => {
+      if (uid === currentUserId) return;
+      if (Date.now() - d.ts > 5000) return; // stale
+      let el = layer.querySelector(`[data-uid="${uid}"]`);
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'remote-cursor';
+        el.dataset.uid = uid;
+        el.innerHTML = `<div class="cursor-dot" style="background:${d.color}"></div><div class="cursor-label" style="background:${d.color}">${escHtml(d.user)}</div>`;
+        layer.appendChild(el);
+      }
+      el.style.left = d.x + 'px';
+      el.style.top = d.y + 'px';
+    });
+  });
+
+  // clean up own cursor on disconnect
+  db.ref('rooms/' + currentRoom + '/cursors/' + currentUserId).onDisconnect().remove();
+}
+
+// ─────────────────────────────────────────
+// AVATARS
+// ─────────────────────────────────────────
+function setupAvatar() {
+  const x = Math.round(200 + Math.random() * (window.innerWidth - 400));
+  const y = Math.round(200 + Math.random() * (window.innerHeight - 400));
+  const avatarData = {
+    user: currentUser,
+    emoji: pfpDataUrl ? null : selectedEmoji,
+    img: pfpDataUrl || null,
+    x, y, color: myColor
+  };
+  db.ref('rooms/' + currentRoom + '/avatars/' + currentUserId).set(avatarData);
+  db.ref('rooms/' + currentRoom + '/avatars/' + currentUserId).onDisconnect().remove();
+
+  db.ref('rooms/' + currentRoom + '/avatars').on('value', snap => {
+    const data = snap.val() || {};
+    const layer = document.getElementById('avatar-layer');
+    const alive = new Set(Object.keys(data));
+    layer.querySelectorAll('.avatar-bubble').forEach(el => {
+      if (!alive.has(el.dataset.uid)) el.remove();
+    });
+    Object.entries(data).forEach(([uid, d]) => renderAvatar(uid, d));
+  });
+}
+
+function renderAvatar(uid, data) {
+  const layer = document.getElementById('avatar-layer');
+  let el = layer.querySelector(`[data-uid="${uid}"]`);
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'avatar-bubble';
+    el.dataset.uid = uid;
+    el.innerHTML = `
+      <div class="avatar-img" id="aimg-${uid}" style="border-color:${data.color}"></div>
+      <div class="avatar-name">${escHtml(data.user)}</div>`;
+    // drag for own avatar only
+    if (uid === currentUserId) {
+      let ax = 0, ay = 0, aptr = null;
+      el.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        aptr = e.pointerId;
+        el.setPointerCapture?.(e.pointerId);
+        ax = e.pageX - el.offsetLeft;
+        ay = e.pageY - el.offsetTop;
+      });
+      el.addEventListener('pointermove', e => {
+        if (e.pointerId !== aptr) return;
+        const nx = e.pageX - ax, ny = e.pageY - ay;
+        el.style.left = nx + 'px';
+        el.style.top = ny + 'px';
+        const now = Date.now(), last = lastWrite.get('avatar') || 0;
+        if (now - last < 60) return;
+        lastWrite.set('avatar', now);
+        db.ref('rooms/' + currentRoom + '/avatars/' + uid).update({ x: nx, y: ny });
+      });
+      el.addEventListener('pointerup', () => { aptr = null; });
+    }
+    layer.appendChild(el);
+  }
+  // set avatar image/emoji
+  const imgEl = document.getElementById('aimg-' + uid);
+  if (imgEl) {
+    if (data.img) {
+      imgEl.style.backgroundImage = `url(${data.img})`;
+      imgEl.style.backgroundSize = 'cover';
+      imgEl.textContent = '';
+    } else {
+      imgEl.textContent = data.emoji || '🌙';
+    }
+    imgEl.style.borderColor = data.color;
+  }
+  if (uid !== currentUserId) {
+    el.style.transition = 'left 0.1s, top 0.1s';
+  }
+  el.style.left = data.x + 'px';
+  el.style.top = data.y + 'px';
+}
+
+// ─────────────────────────────────────────
+// REACTIONS
+// ─────────────────────────────────────────
+function setupReactions() {
+  db.ref('rooms/' + currentRoom + '/reactions').on('child_added', snap => {
+    const d = snap.val();
+    if (Date.now() - d.ts > 3000) return; // ignore old
+    spawnReaction(d.emoji, d.x, d.y);
+    snap.ref.remove();
+  });
+}
+
+function sendReaction(emoji) {
+  const x = 100 + Math.random() * (window.innerWidth - 200);
+  const y = window.innerHeight - 100;
+  db.ref('rooms/' + currentRoom + '/reactions').push({ emoji, x, y, ts: Date.now() });
+}
+
+function spawnReaction(emoji, x, y) {
+  const el = document.createElement('div');
+  el.className = 'reaction-float';
+  el.textContent = emoji;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2100);
+}
+
+// ─────────────────────────────────────────
+// YOUTUBE / MUSIC QUEUE
+// ─────────────────────────────────────────
+function setupYT() {
+  db.ref('rooms/' + currentRoom + '/yt').on('value', snap => {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    ytQueue = d.queue || [];
+    ytCurrentIdx = d.idx || 0;
+    ytPlaying = d.playing !== false;
+    renderQueue();
+    loadYTVideo(ytQueue[ytCurrentIdx], ytPlaying);
+  });
+}
+
+function toggleYT() {
+  ytOpen = !ytOpen;
+  document.getElementById('yt-body').classList.toggle('hidden', !ytOpen);
+  document.getElementById('yt-toggle-icon').textContent = ytOpen ? '▾' : '▸';
+}
+
+function addToQueue() {
+  const input = document.getElementById('ytInput');
+  const url = input.value.trim();
+  if (!url) return;
+  const id = extractYTId(url);
+  if (!id) { alert('Please paste a valid YouTube URL'); return; }
+  input.value = '';
+  const newQueue = [...ytQueue, { id, title: 'Loading…' }];
+  const newIdx = ytQueue.length === 0 ? 0 : ytCurrentIdx;
+  db.ref('rooms/' + currentRoom + '/yt').set({ queue: newQueue, idx: newIdx, playing: true });
+}
+
+function extractYTId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function renderQueue() {
+  const el = document.getElementById('yt-queue');
+  el.innerHTML = '';
+  ytQueue.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'yt-queue-item' + (i === ytCurrentIdx ? ' playing' : '');
+    div.innerHTML = `<span style="cursor:pointer;flex:1" onclick="jumpTo(${i})">${i === ytCurrentIdx ? '▶ ' : ''}${item.title || item.id}</span><button onclick="removeFromQueue(${i})">✕</button>`;
+    el.appendChild(div);
+  });
+  document.getElementById('yt-now-playing').textContent =
+    ytQueue[ytCurrentIdx] ? (ytQueue[ytCurrentIdx].title || ytQueue[ytCurrentIdx].id) : 'nothing playing';
+  document.getElementById('ytPlayBtn').textContent = ytPlaying ? '⏸' : '▶';
+}
+
+function loadYTVideo(item, play) {
+  if (!item) return;
+  const wrap = document.getElementById('yt-frame-wrap');
+  const frame = document.getElementById('yt-frame');
+  const autoplay = play ? 1 : 0;
+  frame.src = `https://www.youtube.com/embed/${item.id}?autoplay=${autoplay}&enablejsapi=1`;
+  if (videoVisible) wrap.classList.add('visible');
+}
+
+function jumpTo(idx) {
+  db.ref('rooms/' + currentRoom + '/yt').update({ idx, playing: true });
+}
+
+function removeFromQueue(idx) {
+  const newQueue = ytQueue.filter((_, i) => i !== idx);
+  const newIdx = Math.min(ytCurrentIdx, Math.max(0, newQueue.length - 1));
+  db.ref('rooms/' + currentRoom + '/yt').set({ queue: newQueue, idx: newIdx, playing: true });
+}
+
+function ytNext() {
+  if (ytCurrentIdx < ytQueue.length - 1)
+    db.ref('rooms/' + currentRoom + '/yt').update({ idx: ytCurrentIdx + 1, playing: true });
+}
+
+function ytPrev() {
+  if (ytCurrentIdx > 0)
+    db.ref('rooms/' + currentRoom + '/yt').update({ idx: ytCurrentIdx - 1, playing: true });
+}
+
+function ytPlayPause() {
+  db.ref('rooms/' + currentRoom + '/yt').update({ playing: !ytPlaying });
+}
+
+function toggleVideo() {
+  videoVisible = !videoVisible;
+  const wrap = document.getElementById('yt-frame-wrap');
+  wrap.classList.toggle('visible', videoVisible);
+  document.getElementById('ytVidBtn').textContent = videoVisible ? '🎵' : '🎬';
+}
+
+// ─────────────────────────────────────────
+// MISC
+// ─────────────────────────────────────────
 document.getElementById('roomInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') joinRoom();
 });
