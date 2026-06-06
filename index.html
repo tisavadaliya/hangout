@@ -444,18 +444,7 @@ body {
     <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave</div>
 
     <div class="sidebar-label">Stickers</div>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/black-cat.png')">🐈 Cat</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/candle.png')">🕯️ Candle</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/books.png')">📚 Books</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/crystal-ball.png')">🔮 Crystal Ball</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/plant.png')">🪴 Plant</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/books2.png')">📚 Books 2</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/food.png')">🍖 Food</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/food2.png')">🍖 Food 2</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/cat-food.png')">🐟 Cat Food</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food.png')">🦴 Dog Food</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/dog-food2.png')">🦴 Dog Food 2</button>
-    <button class="sticker-btn" onclick="addSticker('https://raw.githubusercontent.com/tisavadaliya/hangout/main/plant2.png')">🌿 Plant 2</button>
+    <div id="sticker-list"><div style="color:#555;font-size:0.7rem;padding:4px">loading…</div></div>
 
     <div class="sidebar-label">Reactions</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;padding:2px 0">
@@ -692,6 +681,7 @@ function enterRoom(name) {
   setupReactions();
   setupYT();
   setupAvatar();
+  loadStickers();
 }
 
 function leaveRoom() {
@@ -773,6 +763,35 @@ function toggleChat() {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─────────────────────────────────────────
+// AUTO-LOAD STICKERS FROM GITHUB
+// ─────────────────────────────────────────
+async function loadStickers() {
+  const list = document.getElementById('sticker-list');
+  try {
+    const res = await fetch('https://api.github.com/repos/tisavadaliya/hangout/contents/stickers');
+    const files = await res.json();
+    const imgs = files.filter(f => /\.(png|gif|jpg|jpeg|webp)$/i.test(f.name));
+    if (imgs.length === 0) {
+      list.innerHTML = '<div style="color:#555;font-size:0.7rem;padding:4px">upload PNGs to your stickers/ folder!</div>';
+      return;
+    }
+    list.innerHTML = '';
+    imgs.forEach(file => {
+      const url = `https://raw.githubusercontent.com/tisavadaliya/hangout/main/stickers/${encodeURIComponent(file.name)}`;
+      const label = file.name.replace(/\.(png|gif|jpg|jpeg|webp)$/i, '').replace(/[-_]/g, ' ');
+      const btn = document.createElement('button');
+      btn.className = 'sticker-btn';
+      btn.style.cssText = 'display:flex;align-items:center;gap:6px;';
+      btn.innerHTML = `<img src="${url}" style="width:22px;height:22px;object-fit:contain;border-radius:3px" loading="lazy"> ${label}`;
+      btn.onclick = () => addSticker(url);
+      list.appendChild(btn);
+    });
+  } catch (err) {
+    list.innerHTML = '<div style="color:#e06;font-size:0.7rem;padding:4px">could not load stickers</div>';
+  }
 }
 
 // ─────────────────────────────────────────
