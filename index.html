@@ -177,6 +177,67 @@ body {
 }
 .swatch:hover, .swatch.active { border-color: #fff; }
 
+/* ── STICKER PICKER POPUP ── */
+#sticker-picker {
+  position: absolute; left: 10px; bottom: 50px; z-index: 300;
+  width: 280px; max-height: 380px;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px;
+  backdrop-filter: blur(12px);
+  display: none; flex-direction: column; gap: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+#sticker-picker.open { display: flex; }
+#sticker-search {
+  padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: #eee; font-size: 0.8rem; outline: none; width: 100%;
+}
+#sticker-search:focus { border-color: var(--accent); }
+#sticker-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 6px; overflow-y: auto; max-height: 300px;
+  padding-right: 2px;
+}
+#sticker-grid::-webkit-scrollbar { width: 3px; }
+#sticker-grid::-webkit-scrollbar-thumb { background: #3a3a5c; border-radius: 2px; }
+.sticker-grid-item {
+  aspect-ratio: 1; border-radius: 8px;
+  border: 1px solid transparent; background: #1a1a2e;
+  cursor: pointer; padding: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  position: relative;
+}
+.sticker-grid-item:hover {
+  border-color: var(--accent); background: #2a2a4a;
+  transform: scale(1.08);
+}
+.sticker-grid-item img {
+  width: 100%; height: 100%; object-fit: contain;
+}
+.sticker-grid-item .sticker-tooltip {
+  position: absolute; bottom: calc(100% + 4px); left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85); color: #eee;
+  font-size: 0.62rem; padding: 2px 6px; border-radius: 4px;
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s;
+  z-index: 10;
+}
+.sticker-grid-item:hover .sticker-tooltip { opacity: 1; }
+
+/* sticker picker toggle button */
+#sticker-picker-btn {
+  position: absolute; left: 10px; bottom: 10px; z-index: 200;
+  padding: 7px 14px; border-radius: 10px;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  color: #eee; font-size: 0.8rem; cursor: pointer;
+  backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;
+  transition: border-color 0.15s;
+}
+#sticker-picker-btn:hover { border-color: var(--accent); }
+
 /* ── CHATBOX ── */
 #chatbox {
   position: absolute; right: 10px; bottom: 10px;
@@ -348,6 +409,40 @@ body {
   animation: floatUp 2s ease-out forwards; z-index: 999;
 }
 
+/* ── REACTION EDITOR MODAL ── */
+#reaction-editor {
+  position: fixed; inset: 0; z-index: 9997;
+  background: rgba(10,10,20,0.85);
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#reaction-editor.open { display: flex; }
+#reaction-editor-box {
+  background: var(--panel-bg); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px; width: 300px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+#reaction-editor-box h3 { color: var(--accent-pale); font-size: 0.9rem; }
+#reaction-editor-box p  { color: #666; font-size: 0.75rem; }
+#reaction-slots { display: flex; gap: 8px; flex-wrap: wrap; }
+.reaction-slot {
+  width: 42px; height: 42px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  font-size: 1.3rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.reaction-slot.active { border-color: var(--accent); }
+.reaction-slot:hover { border-color: var(--accent-light); }
+#reaction-input-row { display: flex; gap: 8px; }
+#reaction-emoji-input {
+  flex: 1; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: #eee; font-size: 1.2rem; outline: none; text-align: center;
+}
+#reaction-emoji-input:focus { border-color: var(--accent); }
+
 /* ── PASSWORD MODAL ── */
 #pw-modal {
   position: fixed; inset: 0; z-index: 9998;
@@ -367,6 +462,20 @@ body {
 </style>
 </head>
 <body>
+
+<!-- ── REACTION EDITOR ── -->
+<div id="reaction-editor">
+  <div id="reaction-editor-box">
+    <h3>✨ Customise reactions</h3>
+    <p>Click a slot then type or paste any emoji to change it</p>
+    <div id="reaction-slots"></div>
+    <div id="reaction-input-row">
+      <input id="reaction-emoji-input" maxlength="8" placeholder="paste emoji…">
+      <button class="btn" onclick="setReactionEmoji()">Set</button>
+    </div>
+    <button class="btn" onclick="closeReactionEditor()">Done ✓</button>
+  </div>
+</div>
 
 <!-- ── PASSWORD MODAL ── -->
 <div id="pw-modal">
@@ -444,16 +553,18 @@ body {
     <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave</div>
 
     <div class="sidebar-label">Stickers</div>
-    <div id="sticker-list"><div style="color:#555;font-size:0.7rem;padding:4px">loading…</div></div>
+    <button class="sticker-btn" onclick="toggleStickerPicker()" style="text-align:center;">🪄 Open Stickers</button>
 
     <div class="sidebar-label">Reactions</div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:2px 0">
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('✨')">✨</button>
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('❤️')">❤️</button>
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('😂')">😂</button>
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('👻')">👻</button>
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('🌙')">🌙</button>
-      <button class="sticker-btn" style="width:30px;padding:4px;text-align:center" onclick="sendReaction('🔥')">🔥</button>
+    <div id="reaction-btns" style="display:flex;flex-wrap:wrap;gap:4px;padding:2px 0"></div>
+    <button class="sticker-btn" onclick="openReactionEditor()" style="text-align:center;font-size:0.7rem;">✏️ Customise</button>
+
+    <div class="sidebar-label">My avatar</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:2px 0">
+      <span style="font-size:0.65rem;color:#666;">size</span>
+      <input type="range" id="avatar-size-slider" min="30" max="120" value="52"
+        style="flex:1;accent-color:var(--accent);cursor:pointer;"
+        oninput="resizeMyAvatar(this.value)">
     </div>
 
     <div class="sidebar-label">Background</div>
@@ -519,6 +630,12 @@ body {
     📎 upload sticker
     <input type="file" id="uploader" accept="image/*">
   </label>
+
+  <!-- Sticker picker popup -->
+  <div id="sticker-picker">
+    <input id="sticker-search" placeholder="🔍 search stickers…" oninput="filterStickers(this.value)">
+    <div id="sticker-grid"></div>
+  </div>
 
   <!-- Context menu -->
   <div id="ctx-menu">
@@ -682,6 +799,12 @@ function enterRoom(name) {
   setupYT();
   setupAvatar();
   loadStickers();
+  loadReactions();
+  // scroll sidebar to bottom so arrow points at Change BG
+  setTimeout(() => {
+    const sb = document.getElementById('sidebar');
+    sb.scrollTop = sb.scrollHeight;
+  }, 500);
 }
 
 function leaveRoom() {
@@ -768,31 +891,65 @@ function escHtml(s) {
 // ─────────────────────────────────────────
 // AUTO-LOAD STICKERS FROM GITHUB
 // ─────────────────────────────────────────
+let allStickerData = [];
+
 async function loadStickers() {
-  const list = document.getElementById('sticker-list');
   try {
     const res = await fetch('https://api.github.com/repos/tisavadaliya/hangout/contents/stickers');
     const files = await res.json();
-    const imgs = files.filter(f => /\.(png|gif|jpg|jpeg|webp)$/i.test(f.name));
-    if (imgs.length === 0) {
-      list.innerHTML = '<div style="color:#555;font-size:0.7rem;padding:4px">upload PNGs to your stickers/ folder!</div>';
-      return;
-    }
-    list.innerHTML = '';
-    imgs.forEach(file => {
-      const url = `https://raw.githubusercontent.com/tisavadaliya/hangout/main/stickers/${encodeURIComponent(file.name)}`;
-      const label = file.name.replace(/\.(png|gif|jpg|jpeg|webp)$/i, '').replace(/[-_]/g, ' ');
-      const btn = document.createElement('button');
-      btn.className = 'sticker-btn';
-      btn.style.cssText = 'display:flex;align-items:center;gap:6px;';
-      btn.innerHTML = `<img src="${url}" style="width:22px;height:22px;object-fit:contain;border-radius:3px" loading="lazy"> ${label}`;
-      btn.onclick = () => addSticker(url);
-      list.appendChild(btn);
-    });
+    allStickerData = files
+      .filter(f => /\.(png|gif|jpg|jpeg|webp)$/i.test(f.name))
+      .map(f => ({
+        url: `https://raw.githubusercontent.com/tisavadaliya/hangout/main/stickers/${encodeURIComponent(f.name)}`,
+        name: f.name.replace(/\.(png|gif|jpg|jpeg|webp)$/i, '').replace(/[-_]/g, ' ')
+      }));
+    renderStickerGrid(allStickerData);
   } catch (err) {
-    list.innerHTML = '<div style="color:#e06;font-size:0.7rem;padding:4px">could not load stickers</div>';
+    document.getElementById('sticker-grid').innerHTML = '<div style="color:#e06;font-size:0.7rem;padding:4px;grid-column:span 4">could not load stickers</div>';
   }
 }
+
+function renderStickerGrid(stickers) {
+  const grid = document.getElementById('sticker-grid');
+  grid.innerHTML = '';
+  if (stickers.length === 0) {
+    grid.innerHTML = '<div style="color:#555;font-size:0.7rem;padding:4px;grid-column:span 4">no stickers found</div>';
+    return;
+  }
+  stickers.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'sticker-grid-item';
+    div.innerHTML = `<img src="${s.url}" loading="lazy" alt="${s.name}"><span class="sticker-tooltip">${s.name}</span>`;
+    div.onclick = () => {
+      addSticker(s.url);
+      toggleStickerPicker();
+    };
+    grid.appendChild(div);
+  });
+}
+
+function filterStickers(query) {
+  const q = query.toLowerCase();
+  const filtered = allStickerData.filter(s => s.name.toLowerCase().includes(q));
+  renderStickerGrid(filtered);
+}
+
+function toggleStickerPicker() {
+  const picker = document.getElementById('sticker-picker');
+  picker.classList.toggle('open');
+  if (picker.classList.contains('open')) {
+    document.getElementById('sticker-search').focus();
+  }
+}
+
+// close picker when clicking outside
+document.addEventListener('click', e => {
+  const picker = document.getElementById('sticker-picker');
+  if (!picker) return;
+  if (!picker.contains(e.target) && !e.target.closest('#sidebar')) {
+    picker.classList.remove('open');
+  }
+});
 
 // ─────────────────────────────────────────
 // SIDEBAR TOGGLE
@@ -1107,12 +1264,98 @@ function renderAvatar(uid, data) {
       imgEl.textContent = data.emoji || '🌙';
     }
     imgEl.style.borderColor = data.color;
+    const s = data.size || 52;
+    imgEl.style.width = s + 'px';
+    imgEl.style.height = s + 'px';
+    imgEl.style.fontSize = Math.round(s * 0.5) + 'px';
   }
   if (uid !== currentUserId) {
     el.style.transition = 'left 0.1s, top 0.1s';
   }
   el.style.left = data.x + 'px';
   el.style.top = data.y + 'px';
+}
+
+// ─────────────────────────────────────────
+// CUSTOMISABLE REACTIONS
+// ─────────────────────────────────────────
+const DEFAULT_REACTIONS = ['✨', '❤️', '😂', '👻', '🌙', '🔥'];
+let myReactions = [...DEFAULT_REACTIONS];
+let activeReactionSlot = 0;
+
+function loadReactions() {
+  const saved = localStorage.getItem('hangout_reactions');
+  if (saved) myReactions = JSON.parse(saved);
+  renderReactionBtns();
+}
+
+function renderReactionBtns() {
+  const container = document.getElementById('reaction-btns');
+  container.innerHTML = '';
+  myReactions.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'sticker-btn';
+    btn.style.cssText = 'width:30px;padding:4px;text-align:center;';
+    btn.textContent = emoji;
+    btn.onclick = () => sendReaction(emoji);
+    container.appendChild(btn);
+  });
+}
+
+function openReactionEditor() {
+  document.getElementById('reaction-editor').classList.add('open');
+  renderReactionSlots();
+}
+
+function closeReactionEditor() {
+  document.getElementById('reaction-editor').classList.remove('open');
+  localStorage.setItem('hangout_reactions', JSON.stringify(myReactions));
+  renderReactionBtns();
+}
+
+function renderReactionSlots() {
+  const slots = document.getElementById('reaction-slots');
+  slots.innerHTML = '';
+  myReactions.forEach((emoji, i) => {
+    const div = document.createElement('div');
+    div.className = 'reaction-slot' + (i === activeReactionSlot ? ' active' : '');
+    div.textContent = emoji;
+    div.onclick = () => {
+      activeReactionSlot = i;
+      renderReactionSlots();
+      document.getElementById('reaction-emoji-input').focus();
+    };
+    slots.appendChild(div);
+  });
+}
+
+function setReactionEmoji() {
+  const input = document.getElementById('reaction-emoji-input');
+  const emoji = input.value.trim();
+  if (!emoji) return;
+  myReactions[activeReactionSlot] = emoji;
+  input.value = '';
+  // advance to next slot
+  activeReactionSlot = (activeReactionSlot + 1) % myReactions.length;
+  renderReactionSlots();
+}
+
+document.getElementById('reaction-emoji-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') setReactionEmoji();
+});
+
+// ─────────────────────────────────────────
+// AVATAR SIZE
+// ─────────────────────────────────────────
+function resizeMyAvatar(size) {
+  size = parseInt(size);
+  const el = document.querySelector(`#avatar-layer [data-uid="${currentUserId}"] .avatar-img`);
+  if (el) {
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.fontSize = Math.round(size * 0.5) + 'px';
+  }
+  db.ref('rooms/' + currentRoom + '/avatars/' + currentUserId).update({ size });
 }
 
 // ─────────────────────────────────────────
