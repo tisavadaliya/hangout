@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+
+<body style="margin:0; overflow:hidden;">
+
+    <div id="sidebar"
+style="
+position:absolute;
+left:10px;
+top:10px;
+z-index:1000;
+background:rgba(20,20,30,0.9);
+color:white;
+padding:10px;
+border-radius:10px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+border:1px solid #555;
+">
+
+<button onclick="addSticker('black-cat.png')">🐈 Cat</button>
+<br><br>
+
+<button onclick="addSticker('candle.png')">🕯️ Candle</button>
+<br><br>
+
+<button onclick="addSticker('books.png')">📚 Books</button>
+<br><br>
+
+<button onclick="addSticker('crystal-ball.png')">🔮 Crystal Ball</button>
+<br><br>
+
+<button onclick="addSticker('plant.png')">🪴 Plant</button>
+<br></br>
+
+<button onclick="addSticker('books2.png')">📚 Books 2</button>
+<br><br>
+
+<button onclick="addSticker('food.png')">🍖 Food</button>
+<br><br>
+
+<button onclick="addSticker('food2.png')">🍖 Food 2</button>
+<br><br>
+
+<button onclick="addSticker('cat-food.png')">🐟 Cat Food</button>
+<br><br>
+
+<button onclick="addSticker('dog-food.png')">🦴 Dog Food</button>
+<br><br>
+
+<button onclick="addSticker('dog-food2.png')">🦴 Dog Food 2</button>
+<br><br>
+
+<button onclick="addSticker('plant2.png')">🌿 Plant 2</button>
+
+</div>
+
+<div id="chatbox"
+style="
+position:absolute;
+right:10px;
+bottom:10px;
+width:250px;
+height:300px;
+background:rgba(20,20,30,0.9);
+color:white;
+padding:10px;
+border-radius:10px;
+display:flex;
+flex-direction:column;
+z-index:1000;
+">
+
+<div id="messages"
+style="flex:1; overflow-y:auto; font-size:14px;">
+</div>
+
+<input id="chatInput"
+placeholder="say something..."
+style="margin-top:5px; padding:5px;">
+</div>
+
+<input
+    type="file"
+    id="uploader"
+    style="
+        position:absolute;
+        z-index:1000;
+        top:520px;
+        left:10px;
+    "
+>
+
+<div id="room" style="position:relative;">
+    
+    <img
+        src="room.jpg"
+        style="
+            width:100vw;
+            height:100vh;
+            object-fit:cover;
+        "
+    >
+>
+</div>
+<script>
+
+let roomItems = [];
+
+/* =========================
+   GLOBAL STATE
+========================= */
+
+let selectedSticker = null;
+let chatHistory = [];
+
+function saveRoom() {
+    localStorage.setItem("room", JSON.stringify(roomItems));
+}
+
+/* =========================
+   DRAG SYSTEM
+========================= */
+
+function makeDraggable(sticker) {
+
+    sticker.addEventListener("mousedown", () => {
+        selectedSticker = sticker;
+    });
+
+    sticker.addEventListener("wheel", (event) => {
+
+        event.preventDefault();
+
+        let currentWidth = parseInt(sticker.style.width) || 120;
+
+        if (event.deltaY < 0) {
+            currentWidth += 10;
+        } else {
+            currentWidth -= 10;
+        }
+
+        if (currentWidth < 20) currentWidth = 20;
+
+        sticker.style.width = currentWidth + "px";
+
+        let item = roomItems.find(i => i.id == sticker.dataset.id);
+        if (item) {
+            item.size = currentWidth;
+            saveRoom();
+        }
+    });
+}
+
+/* mouse release + move */
+document.addEventListener("mouseup", () => {
+    selectedSticker = null;
+});
+
+document.addEventListener("mousemove", (event) => {
+
+    if (selectedSticker) {
+
+        let x = event.pageX - 60;
+        let y = event.pageY - 60;
+
+        selectedSticker.style.left = x + "px";
+        selectedSticker.style.top = y + "px";
+
+        const id = selectedSticker.dataset.id;
+
+        const item = roomItems.find(i => i.id == id);
+
+        if (item) {
+            item.x = x;
+            item.y = y;
+            saveRoom();
+        }
+    }
+});
+
+/* =========================
+   STICKERS
+========================= */
+
+window.addSticker = function(imagePath, x = 300, y = 300, size = 120) {
+
+    const image = document.createElement("img");
+
+    // 🔑 unique ID for saving system
+    const id = Date.now() + Math.random();
+    image.dataset.id = id;
+
+    image.src = imagePath;
+    image.style.position = "absolute";
+    image.style.width = size + "px";
+    image.style.left = x + "px";
+    image.style.top = y + "px";
+    image.style.cursor = "grab";
+
+    makeDraggable(image);
+
+    document.getElementById("room").appendChild(image);
+
+    /* store it */
+    roomItems.push({
+        id,              // 🔑 IMPORTANT (replaces broken el linking)
+        src: imagePath,
+        x: x,
+        y: y,
+        size: size
+    });
+
+    saveRoom();
+};
+
+/* =========================
+   CHAT SYSTEM
+========================= */
+
+function initChat() {
+
+    const chatInput = document.getElementById("chatInput");
+    const messages = document.getElementById("messages");
+
+    if (!chatInput || !messages) return;
+
+    chatInput.addEventListener("keydown", (e) => {
+
+        if (e.key === "Enter" && chatInput.value.trim() !== "") {
+
+            const text = "you: " + chatInput.value;
+
+            const msg = document.createElement("div");
+            msg.textContent = text;
+
+            messages.appendChild(msg);
+            messages.scrollTop = messages.scrollHeight;
+
+            chatHistory.push(text);
+            localStorage.setItem("chat", JSON.stringify(chatHistory));
+
+            chatInput.value = "";
+        }
+    });
+
+    /* load chat */
+    const saved = localStorage.getItem("chat");
+
+    if (saved) {
+        chatHistory = JSON.parse(saved);
+
+        messages.innerHTML = "";
+
+        chatHistory.forEach(text => {
+            const msg = document.createElement("div");
+            msg.textContent = text;
+            messages.appendChild(msg);
+        });
+
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
+
+/* =========================
+   INIT EVERYTHING
+========================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    initChat();
+
+    const uploader = document.getElementById("uploader");
+
+    /* =========================
+       LOAD SAVED ROOM
+    ========================= */
+
+    const savedRoom = localStorage.getItem("room");
+
+    if (savedRoom) {
+
+        roomItems = JSON.parse(savedRoom);
+
+        roomItems.forEach(item => {
+
+            const image = document.createElement("img");
+
+            image.dataset.id = item.id;   // ✅ REQUIRED FOR SAVE/LOAD LINK
+
+            image.src = item.src;
+            image.style.position = "absolute";
+            image.style.width = item.size + "px";
+            image.style.left = item.x + "px";
+            image.style.top = item.y + "px";
+            image.style.cursor = "grab";
+
+            makeDraggable(image);
+
+            document.getElementById("room").appendChild(image);
+        });
+    }
+
+    /* =========================
+       UPLOAD NEW IMAGE (FIXED STEP 2)
+    ========================= */
+
+    uploader.addEventListener("change", (event) => {
+
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const image = document.createElement("img");
+
+        const id = Date.now() + Math.random();   // ✅ unique ID
+        image.dataset.id = id;
+
+        image.src = URL.createObjectURL(file);
+
+        image.style.position = "absolute";
+        image.style.width = "150px";
+        image.style.left = "300px";
+        image.style.top = "300px";
+        image.style.cursor = "grab";
+
+        makeDraggable(image);
+        document.getElementById("room").appendChild(image);
+
+        /* ✅ SAVE PROPERLY */
+        roomItems.push({
+            id,
+            src: image.src,
+            x: 300,
+            y: 300,
+            size: 150
+        });
+
+        saveRoom();
+    });
+
+});
+
+</script>
+</body>
+</html>
