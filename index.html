@@ -134,9 +134,10 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px; padding: 10px 8px;
   display: flex; flex-direction: column; gap: 5px;
-  max-height: calc(100vh - 70px); overflow-y: auto;
+  max-height: calc(100vh - 150px); overflow-y: auto;
+  overflow-x: hidden;
   backdrop-filter: blur(8px);
-  width: 136px;
+  width: 148px;
   transition: opacity 0.2s, transform 0.2s;
 }
 #sidebar.hidden {
@@ -157,6 +158,7 @@ body {
   cursor: pointer; text-align: left;
   transition: background 0.15s, border-color 0.15s;
   width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .sticker-btn:hover { background: #2a2a4a; border-color: var(--accent); color: #fff; }
 
@@ -168,19 +170,36 @@ body {
 }
 .room-badge:hover { background: rgba(108,63,207,0.3); }
 
-/* theme swatches */
-.swatch-row { display: flex; gap: 5px; flex-wrap: wrap; padding: 2px 0; }
+/* theme swatches — 2 rows of 6 */
+.swatch-row { display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; padding: 2px 0; }
 .swatch {
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 18px; height: 18px; border-radius: 50%;
   cursor: pointer; border: 2px solid transparent;
   transition: border-color 0.15s;
 }
 .swatch:hover, .swatch.active { border-color: #fff; }
+.swatch-label { font-size: 0.55rem; color: #444; margin-top: 2px; }
+
+/* ── BOTTOM-LEFT CONTROLS ── */
+#bottom-left {
+  position: absolute; left: 10px; bottom: 10px;
+  z-index: 200; display: flex; flex-direction: column; gap: 5px;
+  align-items: flex-start;
+}
+.bottom-btn {
+  padding: 6px 12px; border-radius: 8px;
+  background: var(--panel-bg); border: 1px solid var(--border);
+  color: #777; font-size: 0.72rem; cursor: pointer;
+  backdrop-filter: blur(8px); transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.bottom-btn:hover { color: var(--accent-pale); border-color: var(--accent); }
+.bottom-btn input { display: none; }
 
 /* ── STICKER PICKER POPUP ── */
 #sticker-picker {
-  position: absolute; left: 10px; bottom: 50px; z-index: 300;
-  width: 280px; max-height: 380px;
+  position: absolute; left: 10px; bottom: 10px; z-index: 300;
+  width: 280px; max-height: 400px;
   background: var(--panel-bg); border: 1px solid var(--border);
   border-radius: 14px; padding: 10px;
   backdrop-filter: blur(12px);
@@ -196,7 +215,7 @@ body {
 #sticker-search:focus { border-color: var(--accent); }
 #sticker-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 6px; overflow-y: auto; max-height: 300px;
+  gap: 6px; overflow-y: auto; max-height: 320px;
   padding-right: 2px;
 }
 #sticker-grid::-webkit-scrollbar { width: 3px; }
@@ -213,35 +232,21 @@ body {
   border-color: var(--accent); background: #2a2a4a;
   transform: scale(1.08);
 }
-.sticker-grid-item img {
-  width: 100%; height: 100%; object-fit: contain;
-}
+.sticker-grid-item img { width: 100%; height: 100%; object-fit: contain; }
 .sticker-grid-item .sticker-tooltip {
   position: absolute; bottom: calc(100% + 4px); left: 50%;
   transform: translateX(-50%);
   background: rgba(0,0,0,0.85); color: #eee;
   font-size: 0.62rem; padding: 2px 6px; border-radius: 4px;
   white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: opacity 0.15s;
-  z-index: 10;
+  opacity: 0; transition: opacity 0.15s; z-index: 10;
 }
 .sticker-grid-item:hover .sticker-tooltip { opacity: 1; }
-
-/* sticker picker toggle button */
-#sticker-picker-btn {
-  position: absolute; left: 10px; bottom: 10px; z-index: 200;
-  padding: 7px 14px; border-radius: 10px;
-  background: var(--panel-bg); border: 1px solid var(--border);
-  color: #eee; font-size: 0.8rem; cursor: pointer;
-  backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;
-  transition: border-color 0.15s;
-}
-#sticker-picker-btn:hover { border-color: var(--accent); }
 
 /* ── CHATBOX ── */
 #chatbox {
   position: absolute; right: 10px; bottom: 10px;
-  width: 260px; height: 320px;
+  width: 260px;
   background: var(--panel-bg);
   border: 1px solid var(--border); border-radius: 12px;
   display: flex; flex-direction: column;
@@ -252,9 +257,14 @@ body {
   padding: 9px 12px; font-size: 0.72rem;
   color: var(--accent-light); border-bottom: 1px solid #2a2a4a;
   display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer;
+  cursor: pointer; user-select: none;
 }
 #online-count { color: #666; font-size: 0.68rem; }
+#chat-body {
+  display: flex; flex-direction: column;
+  height: 300px; transition: height 0.2s;
+}
+#chat-body.collapsed { height: 0; overflow: hidden; }
 #messages {
   flex: 1; overflow-y: auto; padding: 8px;
   display: flex; flex-direction: column; gap: 5px;
@@ -267,6 +277,7 @@ body {
 #chat-input-row {
   display: flex; gap: 5px; padding: 7px;
   border-top: 1px solid #2a2a4a;
+  flex-shrink: 0;
 }
 #chatInput {
   flex: 1; padding: 6px 9px; border-radius: 7px;
@@ -292,9 +303,8 @@ body {
 }
 #yt-header {
   padding: 8px 12px; font-size: 0.72rem; color: var(--accent-light);
-  border-bottom: 1px solid #2a2a4a;
   display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer;
+  cursor: pointer; user-select: none;
 }
 #yt-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 #yt-body.hidden { display: none; }
@@ -302,8 +312,7 @@ body {
 #ytInput {
   flex: 1; padding: 6px 9px; border-radius: 7px;
   border: 1px solid var(--border); background: var(--input-bg);
-  color: #eee; font-size: 0.76rem; outline: none;
-  user-select: text;
+  color: #eee; font-size: 0.76rem; outline: none; user-select: text;
 }
 #ytInput:focus { border-color: var(--accent); }
 #ytAddBtn {
@@ -315,13 +324,10 @@ body {
 .yt-queue-item {
   font-size: 0.7rem; color: #aaa; padding: 4px 6px;
   background: #1a1a2e; border-radius: 5px;
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 4px;
+  display: flex; justify-content: space-between; align-items: center; gap: 4px;
 }
 .yt-queue-item.playing { color: var(--accent-pale); border-left: 2px solid var(--accent); }
-.yt-queue-item button {
-  background: none; border: none; color: #555; cursor: pointer; font-size: 0.7rem; padding: 0 2px;
-}
+.yt-queue-item button { background: none; border: none; color: #555; cursor: pointer; font-size: 0.7rem; }
 .yt-queue-item button:hover { color: #e06; }
 #yt-controls { display: flex; gap: 6px; align-items: center; }
 #yt-controls button {
@@ -333,23 +339,18 @@ body {
 #yt-now-playing { font-size: 0.68rem; color: #555; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #yt-frame-wrap { display: none; }
 #yt-frame-wrap.visible { display: block; }
-#yt-frame-wrap iframe { width: 100%; height: 168px; border: none; border-radius: 0 0 8px 8px; }
+#yt-frame-wrap iframe { width: 100%; height: 168px; border: none; }
 
 /* ── CURSORS ── */
 .remote-cursor {
   position: absolute; pointer-events: none;
-  transition: left 0.05s linear, top 0.05s linear;
-  z-index: 300;
+  transition: left 0.05s linear, top 0.05s linear; z-index: 300;
 }
-.cursor-dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  margin-bottom: 2px;
-}
+.cursor-dot { width: 10px; height: 10px; border-radius: 50%; margin-bottom: 2px; }
 .cursor-label {
   font-size: 0.62rem; color: #fff;
   background: rgba(0,0,0,0.6);
-  padding: 1px 5px; border-radius: 4px;
-  white-space: nowrap;
+  padding: 1px 5px; border-radius: 4px; white-space: nowrap;
 }
 
 /* ── AVATARS ── */
@@ -362,16 +363,14 @@ body {
 .avatar-img {
   width: 52px; height: 52px; border-radius: 50%;
   border: 2px solid var(--accent);
-  object-fit: cover;
   background: #1a1a2e;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.6rem; overflow: hidden; background-size: cover;
 }
 .avatar-name {
   font-size: 0.62rem; color: #fff;
   background: rgba(0,0,0,0.55);
-  padding: 1px 6px; border-radius: 4px;
-  white-space: nowrap;
+  padding: 1px 6px; border-radius: 4px; white-space: nowrap;
 }
 
 /* ── CONTEXT MENU ── */
@@ -388,17 +387,6 @@ body {
 }
 #ctx-menu button:hover { background: #2a2a4a; color: #fff; }
 
-/* ── STICKER UPLOAD ── */
-#upload-label {
-  position: absolute; left: 10px; bottom: 10px; z-index: 100;
-  padding: 6px 12px; border-radius: 8px;
-  background: var(--panel-bg); border: 1px solid var(--border);
-  color: #777; font-size: 0.72rem; cursor: pointer;
-  backdrop-filter: blur(8px); transition: color 0.2s;
-}
-#upload-label:hover { color: var(--accent-pale); border-color: var(--accent); }
-#upload-label input { display: none; }
-
 /* ── FLOATING REACTIONS ── */
 @keyframes floatUp {
   0%   { transform: translateY(0) scale(1); opacity: 1; }
@@ -409,39 +397,25 @@ body {
   animation: floatUp 2s ease-out forwards; z-index: 999;
 }
 
-/* ── REACTION EDITOR MODAL ── */
-#reaction-editor {
-  position: fixed; inset: 0; z-index: 9997;
-  background: rgba(10,10,20,0.85);
-  display: none; align-items: center; justify-content: center;
-  backdrop-filter: blur(4px);
-}
-#reaction-editor.open { display: flex; }
-#reaction-editor-box {
+/* ── REACTION EDITOR MINI POPUP ── */
+#reaction-mini-editor {
+  position: fixed; z-index: 9997;
   background: var(--panel-bg); border: 1px solid var(--border);
-  border-radius: 14px; padding: 18px; width: 300px;
-  display: flex; flex-direction: column; gap: 12px;
+  border-radius: 10px; padding: 10px 12px;
+  display: none; flex-direction: column; gap: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  min-width: 180px;
 }
-#reaction-editor-box h3 { color: var(--accent-pale); font-size: 0.9rem; }
-#reaction-editor-box p  { color: #666; font-size: 0.75rem; }
-#reaction-slots { display: flex; gap: 8px; flex-wrap: wrap; }
-.reaction-slot {
-  width: 42px; height: 42px; border-radius: 10px;
+#reaction-mini-editor.open { display: flex; }
+#reaction-mini-editor p { font-size: 0.68rem; color: #666; }
+#reaction-mini-input-row { display: flex; gap: 6px; }
+#reaction-mini-input {
+  flex: 1; padding: 6px 8px; border-radius: 7px;
   border: 1px solid var(--border); background: var(--input-bg);
-  font-size: 1.3rem; cursor: pointer; display: flex;
-  align-items: center; justify-content: center;
-  transition: border-color 0.15s;
-  position: relative;
+  color: #eee; font-size: 1.1rem; outline: none; text-align: center; width: 60px;
 }
-.reaction-slot.active { border-color: var(--accent); }
-.reaction-slot:hover { border-color: var(--accent-light); }
-#reaction-input-row { display: flex; gap: 8px; }
-#reaction-emoji-input {
-  flex: 1; padding: 8px 10px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--input-bg);
-  color: #eee; font-size: 1.2rem; outline: none; text-align: center;
-}
-#reaction-emoji-input:focus { border-color: var(--accent); }
+#reaction-mini-input:focus { border-color: var(--accent); }
 
 /* ── PASSWORD MODAL ── */
 #pw-modal {
@@ -463,17 +437,12 @@ body {
 </head>
 <body>
 
-<!-- ── REACTION EDITOR ── -->
-<div id="reaction-editor">
-  <div id="reaction-editor-box">
-    <h3>✨ Customise reactions</h3>
-    <p>Click a slot then type or paste any emoji to change it</p>
-    <div id="reaction-slots"></div>
-    <div id="reaction-input-row">
-      <input id="reaction-emoji-input" maxlength="8" placeholder="paste emoji…">
-      <button class="btn" onclick="setReactionEmoji()">Set</button>
-    </div>
-    <button class="btn" onclick="closeReactionEditor()">Done ✓</button>
+<!-- ── REACTION MINI EDITOR ── -->
+<div id="reaction-mini-editor">
+  <p>paste or type an emoji</p>
+  <div id="reaction-mini-input-row">
+    <input id="reaction-mini-input" maxlength="8" placeholder="emoji">
+    <button class="btn" onclick="confirmReactionEdit()">Set</button>
   </div>
 </div>
 
@@ -550,45 +519,44 @@ body {
 
   <!-- Sidebar -->
   <div id="sidebar">
-    <div class="room-badge" id="roomBadge" onclick="leaveRoom()">← leave</div>
+    <div class="room-badge" id="roomBadge" onclick="leaveRoom()">leave room</div>
 
     <div class="sidebar-label">Stickers</div>
-    <button class="sticker-btn" onclick="toggleStickerPicker()" style="text-align:center;">🪄 Open Stickers</button>
+    <button class="sticker-btn" onclick="toggleStickerPicker()" style="text-align:center;">Open sticker picker</button>
 
     <div class="sidebar-label">Reactions</div>
     <div id="reaction-btns" style="display:flex;flex-wrap:wrap;gap:4px;padding:2px 0"></div>
-    <button class="sticker-btn" onclick="openReactionEditor()" style="text-align:center;font-size:0.7rem;">✏️ Customise</button>
 
-    <div class="sidebar-label">My avatar</div>
+    <div class="sidebar-label">My avatar size</div>
     <div style="display:flex;align-items:center;gap:6px;padding:2px 0">
-      <span style="font-size:0.65rem;color:#666;">size</span>
       <input type="range" id="avatar-size-slider" min="30" max="120" value="52"
         style="flex:1;accent-color:var(--accent);cursor:pointer;"
         oninput="resizeMyAvatar(this.value)">
     </div>
 
-    <div class="sidebar-label">Background</div>
-    <label class="sticker-btn" style="cursor:pointer;text-align:center;">
-      🖼️ Change BG
-      <input type="file" id="bg-uploader" accept="image/*" style="display:none">
-    </label>
-    <button class="sticker-btn" onclick="resetBg()" style="text-align:center;">↺ Reset BG</button>
-
-    <div class="sidebar-label">Theme colour</div>
+    <div class="sidebar-label">My theme</div>
     <div class="swatch-row">
-      <div class="swatch active" style="background:#6c3fcf" onclick="setTheme('#6c3fcf','#8b63e8','#c8b4f8')"></div>
-      <div class="swatch" style="background:#c94f7c" onclick="setTheme('#c94f7c','#e06c95','#f4b8ce')"></div>
-      <div class="swatch" style="background:#2d7dd2" onclick="setTheme('#2d7dd2','#4a9be8','#a8d0f8')"></div>
-      <div class="swatch" style="background:#1a9e6e" onclick="setTheme('#1a9e6e','#25c98c','#90ecd4')"></div>
-      <div class="swatch" style="background:#d4862a" onclick="setTheme('#d4862a','#f0a040','#fad4a0')"></div>
-      <div class="swatch" style="background:#888" onclick="setTheme('#666','#888','#ccc')"></div>
+      <!-- Witchy palette -->
+      <div class="swatch active" title="Midnight Coven" style="background:#240321" onclick="setTheme('#240321','#4f3841','#957f89')"></div>
+      <div class="swatch" title="Smoky Altar" style="background:#4f3841" onclick="setTheme('#4f3841','#957f89','#cfc3e4')"></div>
+      <div class="swatch" title="Worn Velvet" style="background:#957f89" onclick="setTheme('#957f89','#cfc3e4','#fffafb')"></div>
+      <div class="swatch" title="Astral Haze" style="background:#cfc3e4" onclick="setTheme('#7a6aaa','#cfc3e4','#fffafb')"></div>
+      <div class="swatch" title="Moon Dust" style="background:#fffafb" onclick="setTheme('#b09ab8','#d4c8e0','#fffafb')"></div>
+      <div class="swatch" title="Deep Purple" style="background:#6c3fcf" onclick="setTheme('#6c3fcf','#8b63e8','#c8b4f8')"></div>
+      <!-- Celestial palette -->
+      <div class="swatch" title="Midnight Blue" style="background:#131b2e" onclick="setTheme('#131b2e','#444d56','#c3a572')"></div>
+      <div class="swatch" title="Star Gold" style="background:#856429" onclick="setTheme('#856429','#c3a572','#f0dbb0')"></div>
+      <div class="swatch" title="Aged Parchment" style="background:#c3a572" onclick="setTheme('#8a7040','#c3a572','#f0dbb0')"></div>
+      <div class="swatch" title="Dusty Plum" style="background:#292b3a" onclick="setTheme('#292b3a','#444d56','#8b8fa8')"></div>
+      <div class="swatch" title="Celestial Silver" style="background:#444d56" onclick="setTheme('#444d56','#5e6f7e','#adc0d0')"></div>
+      <div class="swatch" title="Starlight Lilac" style="background:#5b5f7f" onclick="setTheme('#5b5f7f','#8b8fa8','#c8cadc')"></div>
     </div>
   </div>
 
   <!-- Chat -->
   <div id="chatbox">
     <div id="chat-header" onclick="toggleChat()">
-      <span id="roomLabel">💬 room</span>
+      <span id="roomLabel">room</span>
       <span id="online-count">0 online</span>
     </div>
     <div id="chat-body">
@@ -603,7 +571,7 @@ body {
   <!-- YouTube panel -->
   <div id="yt-panel">
     <div id="yt-header" onclick="toggleYT()">
-      <span>🎵 music / video</span>
+      <span>music / video</span>
       <span id="yt-toggle-icon">▾</span>
     </div>
     <div id="yt-body">
@@ -625,11 +593,18 @@ body {
     </div>
   </div>
 
-  <!-- Sticker upload -->
-  <label id="upload-label">
-    📎 upload sticker
-    <input type="file" id="uploader" accept="image/*">
-  </label>
+  <!-- Bottom-left controls -->
+  <div id="bottom-left">
+    <label class="bottom-btn">
+      Change background
+      <input type="file" id="bg-uploader" accept="image/*">
+    </label>
+    <button class="bottom-btn" onclick="resetBg()">Reset background</button>
+    <label class="bottom-btn">
+      Upload sticker
+      <input type="file" id="uploader" accept="image/*">
+    </label>
+  </div>
 
   <!-- Sticker picker popup -->
   <div id="sticker-picker">
@@ -880,8 +855,14 @@ document.getElementById('chatInput').addEventListener('keydown', e => {
 
 function toggleChat() {
   chatOpen = !chatOpen;
-  document.getElementById('chat-body').style.display = chatOpen ? 'flex' : 'none';
-  if (chatOpen) document.getElementById('chat-body').style.flexDirection = 'column';
+  const body = document.getElementById('chat-body');
+  body.classList.toggle('collapsed', !chatOpen);
+}
+
+function toggleYT() {
+  ytOpen = !ytOpen;
+  document.getElementById('yt-body').classList.toggle('hidden', !ytOpen);
+  document.getElementById('yt-toggle-icon').textContent = ytOpen ? '▾' : '▸';
 }
 
 function escHtml(s) {
@@ -971,21 +952,21 @@ function setTheme(accent, light, pale) {
   document.documentElement.style.setProperty('--accent-border', accent + '55');
   document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
   event.target.classList.add('active');
-  // sync theme to room
-  db.ref('rooms/' + currentRoom + '/theme').set({ accent, light, pale });
+  // local only — save to localStorage
+  localStorage.setItem('hangout_theme', JSON.stringify({ accent, light, pale }));
 }
 
-function setupTheme() {
-  db.ref('rooms/' + currentRoom + '/theme').on('value', snap => {
-    if (!snap.exists()) return;
-    const { accent, light, pale } = snap.val();
-    document.documentElement.style.setProperty('--accent', accent);
-    document.documentElement.style.setProperty('--accent-light', light);
-    document.documentElement.style.setProperty('--accent-pale', pale);
-    document.documentElement.style.setProperty('--accent-bg', accent + '26');
-    document.documentElement.style.setProperty('--accent-border', accent + '55');
-  });
+function loadSavedTheme() {
+  const saved = localStorage.getItem('hangout_theme');
+  if (!saved) return;
+  const { accent, light, pale } = JSON.parse(saved);
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent-light', light);
+  document.documentElement.style.setProperty('--accent-pale', pale);
+  document.documentElement.style.setProperty('--accent-bg', accent + '26');
+  document.documentElement.style.setProperty('--accent-border', accent + '55');
 }
+loadSavedTheme();
 
 // ─────────────────────────────────────────
 // STICKERS
@@ -1277,11 +1258,11 @@ function renderAvatar(uid, data) {
 }
 
 // ─────────────────────────────────────────
-// CUSTOMISABLE REACTIONS
+// CUSTOMISABLE REACTIONS — click to edit inline
 // ─────────────────────────────────────────
 const DEFAULT_REACTIONS = ['✨', '❤️', '😂', '👻', '🌙', '🔥'];
 let myReactions = [...DEFAULT_REACTIONS];
-let activeReactionSlot = 0;
+let editingReactionIdx = null;
 
 function loadReactions() {
   const saved = localStorage.getItem('hangout_reactions');
@@ -1292,56 +1273,56 @@ function loadReactions() {
 function renderReactionBtns() {
   const container = document.getElementById('reaction-btns');
   container.innerHTML = '';
-  myReactions.forEach(emoji => {
+  myReactions.forEach((emoji, i) => {
     const btn = document.createElement('button');
     btn.className = 'sticker-btn';
-    btn.style.cssText = 'width:30px;padding:4px;text-align:center;';
+    btn.style.cssText = 'width:34px;padding:5px;text-align:center;font-size:1rem;';
     btn.textContent = emoji;
+    btn.title = 'click to send  •  right-click to change';
     btn.onclick = () => sendReaction(emoji);
+    btn.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      openInlineReactionEdit(i, btn);
+    });
     container.appendChild(btn);
   });
 }
 
-function openReactionEditor() {
-  document.getElementById('reaction-editor').classList.add('open');
-  renderReactionSlots();
-}
-
-function closeReactionEditor() {
-  document.getElementById('reaction-editor').classList.remove('open');
-  localStorage.setItem('hangout_reactions', JSON.stringify(myReactions));
-  renderReactionBtns();
-}
-
-function renderReactionSlots() {
-  const slots = document.getElementById('reaction-slots');
-  slots.innerHTML = '';
-  myReactions.forEach((emoji, i) => {
-    const div = document.createElement('div');
-    div.className = 'reaction-slot' + (i === activeReactionSlot ? ' active' : '');
-    div.textContent = emoji;
-    div.onclick = () => {
-      activeReactionSlot = i;
-      renderReactionSlots();
-      document.getElementById('reaction-emoji-input').focus();
-    };
-    slots.appendChild(div);
-  });
-}
-
-function setReactionEmoji() {
-  const input = document.getElementById('reaction-emoji-input');
-  const emoji = input.value.trim();
-  if (!emoji) return;
-  myReactions[activeReactionSlot] = emoji;
+function openInlineReactionEdit(idx, anchorEl) {
+  editingReactionIdx = idx;
+  const editor = document.getElementById('reaction-mini-editor');
+  const rect = anchorEl.getBoundingClientRect();
+  editor.style.left = (rect.right + 8) + 'px';
+  editor.style.top  = (rect.top) + 'px';
+  editor.classList.add('open');
+  const input = document.getElementById('reaction-mini-input');
   input.value = '';
-  // advance to next slot
-  activeReactionSlot = (activeReactionSlot + 1) % myReactions.length;
-  renderReactionSlots();
+  input.focus();
 }
 
-document.getElementById('reaction-emoji-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') setReactionEmoji();
+function confirmReactionEdit() {
+  const input = document.getElementById('reaction-mini-input');
+  const emoji = input.value.trim();
+  if (emoji && editingReactionIdx !== null) {
+    myReactions[editingReactionIdx] = emoji;
+    localStorage.setItem('hangout_reactions', JSON.stringify(myReactions));
+    renderReactionBtns();
+  }
+  document.getElementById('reaction-mini-editor').classList.remove('open');
+  editingReactionIdx = null;
+}
+
+document.getElementById('reaction-mini-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmReactionEdit();
+  if (e.key === 'Escape') document.getElementById('reaction-mini-editor').classList.remove('open');
+});
+
+// close mini editor on outside click
+document.addEventListener('click', e => {
+  const editor = document.getElementById('reaction-mini-editor');
+  if (editor && !editor.contains(e.target)) {
+    editor.classList.remove('open');
+  }
 });
 
 // ─────────────────────────────────────────
@@ -1399,12 +1380,6 @@ function setupYT() {
     renderQueue();
     loadYTVideo(ytQueue[ytCurrentIdx], ytPlaying);
   });
-}
-
-function toggleYT() {
-  ytOpen = !ytOpen;
-  document.getElementById('yt-body').classList.toggle('hidden', !ytOpen);
-  document.getElementById('yt-toggle-icon').textContent = ytOpen ? '▾' : '▸';
 }
 
 function addToQueue() {
